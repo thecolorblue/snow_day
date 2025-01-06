@@ -12,11 +12,31 @@
             }
           }
         </script>
+        <template id="play-story-template">
+          <md-filled-tonal-button class="button-play">
+            play
+            <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>
+          </md-filled-tonal-button>
+        </template>
         <script type="module">
           import '@material/web/all.js';
           import {styles as typescaleStyles} from '@material/web/typography/md-typescale-styles.js';
       
           document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
+
+          customElements.define(
+          "play-story",
+          class extends HTMLElement {
+            constructor() {
+              super();
+              let template = document.getElementById("play-story-template");
+              let templateContent = template.content;
+
+              const shadowRoot = this.attachShadow({ mode: "open" });
+              shadowRoot.appendChild(templateContent.cloneNode(true));
+            }
+          },
+        );
         </script>
       </head>
       <body>
@@ -24,19 +44,14 @@
         <div class="panel content">
             <!-- Content for the first panel -->
              <div class="card story">
-                <md-filled-tonal-button class="button-play">
-                  play
-                  <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>
-                </md-filled-tonal-button>
+                <play-story></play-story>
                 {{story}}
              </div>
         </div>
 
         <div class="panel quiz">
             <!-- Content for the second panel -->
-            Panel 2
             <form>
-
             {% for q in questions %}
             <div class="card question">
                 <p class="md-typescale-body-medium">{{ q.question}}</p>

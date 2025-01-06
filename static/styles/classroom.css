@@ -61,7 +61,7 @@ form {
     width: 100%;
 }
 
-.card .button-play {
+play-story {
     position: absolute;
     top: -16px;
     right: -48px;
