@@ -12,11 +12,12 @@ body {
     height: 100%;
     box-sizing: border-box;
     padding: 3.5em 3em;
-    overflow: hidden;
+    overflow: scroll;
 }
 
 .content {
     background-color: #f3f3f3;
+    position: relative;
 }
 
 .quiz {

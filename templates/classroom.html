@@ -18,34 +18,128 @@
             <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>
           </md-filled-tonal-button>
         </template>
+        <template id="play-word-template">
+          <md-filled-tonal-button class="button-play">
+            <svg style="left: 4px" slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>
+          </md-filled-tonal-button>
+        </template>
         <script type="module">
           import '@material/web/all.js';
           import {styles as typescaleStyles} from '@material/web/typography/md-typescale-styles.js';
       
           document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
-
+          
           customElements.define(
-          "play-story",
-          class extends HTMLElement {
-            constructor() {
-              super();
-              let template = document.getElementById("play-story-template");
-              let templateContent = template.content;
+  "play-story",
+  class extends HTMLElement {
+    static get observedAttributes() {
+      return ['for'];
+    }
 
-              const shadowRoot = this.attachShadow({ mode: "open" });
-              shadowRoot.appendChild(templateContent.cloneNode(true));
-            }
-          },
-        );
+    constructor() {
+      super();
+      let template = document.getElementById("play-story-template");
+      let templateContent = template.content;
+
+      const shadowRoot = this.attachShadow({ mode: "open" });
+      shadowRoot.appendChild(templateContent.cloneNode(true));
+
+      // Attach event listener for button click
+      this.button = shadowRoot.querySelector('md-filled-tonal-button');
+      this.button.addEventListener('click', () => {
+        this.toggleSpeech();
+      });
+
+      this.isSpeaking = false;
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name === 'for') {
+        this.forElementId = newValue;
+      }
+    }
+
+    toggleSpeech() {
+      if (!this.utterance) {
+        window.speechSynthesis.cancel(); // clear speech queue
+        const textToSpeak = document.getElementById(this.forElementId)?.innerText || '';
+        this.utterance = new SpeechSynthesisUtterance(textToSpeak);
+        this.utterance.onend = () => {
+          this.isSpeaking = false;
+          this.button.innerText = 'Play/Pause Story';
+        };
+        this.utterance.onpause = () => {
+          this.isSpeaking = false;
+          this.button.innerText = 'Resume Story';
+        };
+      }
+
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+      } else {
+        window.speechSynthesis.resume();
+        if (!window.speechSynthesis.speaking) {
+          window.speechSynthesis.speak(this.utterance);
+        }
+        this.isSpeaking = true;
+        this.button.innerText = 'Pause Story';
+      }
+    }
+  },
+);
+
+        customElements.define(
+  "play-word",
+  class extends HTMLElement {
+    constructor() {
+      super();
+      let template = document.getElementById("play-word-template");
+      let templateContent = template.content;
+
+      const shadowRoot = this.attachShadow({ mode: "open" });
+      shadowRoot.appendChild(templateContent.cloneNode(true));
+
+      // Add an event listener to the button to trigger speech synthesis
+      const speakButton = shadowRoot.querySelector('md-filled-tonal-button');
+      if (speakButton) {
+        speakButton.addEventListener('click', () => {
+          this.speakText();
+        });
+      }
+    }
+
+    speakText() {
+      // Get the text content of all child elements within the custom element
+      const textContent = Array.from(this.childNodes)
+        .map(node => node.nodeType === Node.TEXT_NODE ? node.textContent.trim() : '')
+        .filter(text => text !== '')
+        .join(' ');
+
+      if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+        const utterance = new SpeechSynthesisUtterance(textContent);
+        // Optional: Set the language, pitch, rate, and volume
+        utterance.lang = 'en-US';
+        utterance.pitch = 1;
+        utterance.rate = 1;
+        utterance.volume = 1;
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.warn('Speech synthesis not supported in this browser.');
+      }
+    }
+  },
+);
         </script>
       </head>
       <body>
 
         <div class="panel content">
             <!-- Content for the first panel -->
-             <div class="card story">
-                <play-story></play-story>
-                {{story}}
+            <div id="story" class="card story">
+              <play-story for="story-content"></play-story>
+              <p id="story-content">{{ story|safe }}</p>
              </div>
         </div>
 
@@ -54,9 +148,12 @@
             <form>
             {% for q in questions %}
             <div class="card question">
-                <p class="md-typescale-body-medium">{{ q.question}}</p>
+                <p class="md-typescale-body-medium">{{ q.question|safe }}</p>
                 <div role="radiogroup" aria-labelledby="answers" class="answers">
                     
+                    {% if q.type == 'input' %}
+                    <input type="text" speech="speech" x-webkit-speech="x-webkit-speech" />
+                    {% endif %}
                     {% for a in q.answers %}
                     <label for="{{ loop.index }}-radio">
                     <div class="answer">

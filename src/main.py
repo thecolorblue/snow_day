@@ -4,6 +4,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
+trick_words = [
+'Why',
+'Sure',
+'House',
+'Together',
+'Only',
+'Move',
+'Place',
+'Right',
+'Enough',
+'Laugh',
+]
 
 # Mount static files directory (if you have any)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -14,18 +26,61 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     story = """
-It was a dull, gray afternoon, and Nora and Bella were lying on the grass in Nora's backyard, staring at the clouds. Coffee, Nora's golden retriever, was sprawled beside them, gnawing on a sock he had "borrowed" from the laundry basket.
+Maeve and Paige's Silly Adventure
 
-“I'm soooo bored,” Bella groaned.
-“Same,” Nora said. “Even Coffee looks bored, and he's got a sock.”
+Maeve and Paige were the best of friends. They once made hats out of spaghetti just because it was Tuesday! Every day after school, they played together at one of their houses. Maeve loved Paige's laugh. It sounded funny, like a donkey and a squeaky door at the same time. Even grumpy old Mr. Jenkins next door would smile when he heard it.
 
-Coffee paused mid-chew to wag his tail, but even his usual enthusiasm seemed a bit lackluster.
+The Idea
 
-“I wish something exciting would happen,” Bella said, throwing a stick lazily into the air.
+One sunny day, Maeve sat on her porch wearing a cape made from a shower curtain. Paige arrived with a wagon full of rubber chickens. “Maeve, let's build a clubhouse today! A place just for us!”
 
-At that exact moment, something did happen. A squirrel came tearing across the yard, chittering loudly, with another squirrel chasing it. But that wasn't the weird part.
+Maeve's eyes got big. “Sure! But where should we build it?”
 
-The weird part was the tiny red backpack strapped to the first squirrel.
+Paige pointed to the big oak tree in Maeve's yard. “Right there! It's perfect. The squirrels already threw me an acorn party there yesterday.” 
+
+Building the Clubhouse
+
+The two friends got to work. Maeve brought blankets, pillows, and a jar of “Emergency Pickles” from her house. Paige found old decorations in her garage, like a disco ball. Together, they made the silliest clubhouse ever. It had a slide made of banana peels, a doorbell that quacked, and a sign that said, "Do Not Enter Unless You're a Unicorn." 
+
+When it was done, Maeve plopped onto a pillow shaped like a slice of pizza. “This is the best place ever. It even smells like spaghetti!” 
+
+Playing 'Why?'
+
+Paige laughed. “Only the best for us. What should we do first in our clubhouse?”
+
+Maeve thought. “Let's play 'Why?'” 'Why?' was their favorite game. One person asked a question, and the other gave the silliest answer. 
+
+“Why do birds fly?” Paige asked.
+
+Maeve giggled. “Because they don't want to walk on sticky gum!”
+
+They both laughed so hard Paige snorted, which made them laugh even more. A squirrel peeked in, wondering what was so funny. 
+
+A Special Clubhouse
+
+As they rested under the tree, Paige asked, “What if we ever have to move away? Would our clubhouse still be special?”
+
+Maeve thought. “It's not the place that makes it special. It's us being here together. And the rubber chickens.” 
+
+Paige nodded. “You're right. As long as we're together, any place can be fun. Even a bathtub full of pudding!” 
+
+Until Tomorrow
+
+The sun began to set. Paige said, “I wish we could stay here forever. Or at least until the squirrels kick us out.” 
+
+“Me too,” Maeve said. “But it's dinner time. Let's meet here tomorrow and do it all over again. And bring more pickles.” 
+
+Paige nodded. “You're right. Tomorrow, we'll add a 'No Parents Allowed Unless They Bring Ice Cream' sign.”
+
+Maeve laughed. “Good idea! But we should let them in if they bring cookies shaped like dinosaurs. Only the good ones though.” 
+
+Paige agreed. “Dinosaur cookies are always good enough.”
+
+Forever Friends
+
+The two friends hugged and went home. Maeve thought about how lucky she was to have a friend like Paige. She knew their silly friendship would last forever. 
+
+And she couldn't wait for tomorrow's adventure. 
     """
 
     return templates.TemplateResponse("classroom.html", {
@@ -33,13 +88,40 @@ The weird part was the tiny red backpack strapped to the first squirrel.
         "story": story,
         "questions": [
             {
-                "question": "what number comes first?",
-                "answers": [
-                    "1",
-                    "2",
-                    "3"
-                ]
-            }
+                "type": "input",
+                "question": "spell <play-word>Why</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Sure</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>House</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Together</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Only</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Move</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Place</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Right</play-word>"
+            },
+            {
+                "type": "input",
+                "question": "spell <play-word>Enough</play-word>"
+            },
         ]
-
     })
