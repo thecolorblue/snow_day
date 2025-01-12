@@ -19,10 +19,133 @@
           </md-filled-tonal-button>
         </template>
         <template id="play-word-template">
-          <md-filled-tonal-button class="button-play">
-            <svg style="left: 4px" slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>
-          </md-filled-tonal-button>
+          <style>
+            :root {
+              background-color: #e8def8;
+            }
+            :host {
+              position: relative;
+              top: 7px;
+              padding: 2px 6px;
+            }
+            svg {
+              fill: #4a56e2;
+            }
+          </style>
+          <md-filled-tonal-icon-button class="button-play">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#e8eaed"><path d="M0 0h24v24H0z" fill="none"/><path d="M8 5v14l11-7z"/></svg>
+          </md-filled-tonal-icon-button>
         </template>
+<!-- templates/classroom.html -->
+<template id="speech-recognition-template">
+  <style>
+      :host {
+        display: flex;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        border: none;
+        font-size: 16px;
+        margin-right: 0;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+      }
+      svg {
+          width: 24px;
+          height: 24px;
+      }
+  </style>
+
+  <md-filled-tonal-button class="button-play">
+    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#4956e2"><path d="M480-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-240Zm-40 520v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T480-320q83 0 141.5-58.5T680-520h80q0 105-68 184t-172 93v123h-80Zm40-360q17 0 28.5-11.5T520-520v-240q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v240q0 17 11.5 28.5T480-480Z"/></svg>
+  </md-filled-tonal-button>
+</template>
+
+<script>
+class SpeechRecognitionComponent extends HTMLElement {
+  constructor() {
+        super();
+        const template = document.getElementById('speech-recognition-template');
+        const templateContent = template.content;
+
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.appendChild(templateContent.cloneNode(true));
+
+        // Get the SVG element from the shadow DOM
+        this.btnEl = this.shadowRoot.querySelector('md-filled-tonal-button');
+
+        // Initialize SpeechRecognition API
+        if ('webkitSpeechRecognition' in window) {
+          const grammar = "#JSGF V1.0; grammar letters; public <letter> = a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z ;";
+          const speechRecognitionList = new webkitSpeechGrammarList();
+          speechRecognitionList.addFromString(grammar, 1);
+          this.recognition = new webkitSpeechRecognition();
+          this.recognition.grammars = speechRecognitionList;
+          this.recognition.continuous = false;
+          this.recognition.interimResults = true;
+          this.recognition.lang = 'en-US';
+        } else {
+          console.error('Web Speech API is not supported by your browser.');
+        }
+
+        // Event listeners for mousedown and mouseup
+        this.btnEl.addEventListener('mousedown', () => this.startRecognition());
+        this.btnEl.addEventListener('mouseup', () => this.stopRecognition());
+    }
+
+    startRecognition() {
+        if (!this.recognition) return;
+
+        this.recognition.onstart = () => {
+            console.log('Speech recognition started');
+        };
+
+        this.recognition.onresult = (event) => {
+          console.log(event.results);
+            const transcript = event.results[0][0].transcript;
+            const inputField = document.getElementById(this.forId);
+            if (inputField) {
+                inputField.value = transcript.replace(/\s+/g, '').toLowerCase();
+            }
+        };
+
+        this.recognition.onerror = (event) => {
+            console.error('Speech recognition error detected: ' + event.error);
+        };
+
+        // Start the speech recognition
+        this.recognition.start();
+    }
+
+    stopRecognition() {
+        if (!this.recognition) return;
+
+        this.recognition.onend = () => {
+            console.log('Speech recognition ended');
+        };
+
+        // Stop the speech recognition
+        this.recognition.stop();
+    }
+
+    connectedCallback() {
+        // Get the input field ID from the 'for' attribute
+        this.forId = this.getAttribute('for');
+    }
+
+    disconnectedCallback() {
+        // Remove the event listeners when the component is removed from the DOM
+        if (this.btnEl) {
+            this.btnEl.removeEventListener('mousedown', () => this.startRecognition());
+            this.btnEl.removeEventListener('mouseup', () => this.stopRecognition());
+        }
+    }
+}
+
+// Define the custom element
+customElements.define('listen-question', SpeechRecognitionComponent);
+</script>
         <script type="module">
           import '@material/web/all.js';
           import {styles as typescaleStyles} from '@material/web/typography/md-typescale-styles.js';
@@ -62,7 +185,7 @@
     toggleSpeech() {
       if (!this.utterance) {
         window.speechSynthesis.cancel(); // clear speech queue
-        const textToSpeak = document.getElementById(this.forElementId)?.innerText || '';
+        const textToSpeak = document.getElementById(this.forElementId)?.textContent || '';
         this.utterance = new SpeechSynthesisUtterance(textToSpeak);
         this.utterance.onend = () => {
           this.isSpeaking = false;
@@ -74,7 +197,7 @@
         };
       }
 
-      if (window.speechSynthesis.speaking) {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
         window.speechSynthesis.pause();
       } else {
         window.speechSynthesis.resume();
@@ -100,7 +223,7 @@
       shadowRoot.appendChild(templateContent.cloneNode(true));
 
       // Add an event listener to the button to trigger speech synthesis
-      const speakButton = shadowRoot.querySelector('md-filled-tonal-button');
+      const speakButton = shadowRoot.querySelector('md-filled-tonal-icon-button');
       if (speakButton) {
         speakButton.addEventListener('click', () => {
           this.speakText();
@@ -131,7 +254,104 @@
     }
   },
 );
+
+// Define the QuestionLink class that extends HTMLElement
+class QuestionLink extends HTMLElement {
+  constructor() {
+    super();
+
+    // Create a shadow root to encapsulate styles and structure
+    const shadow = this.attachShadow({ mode: 'open' });
+
+    // Create the '?' button
+    const button = document.createElement('button');
+    button.textContent = '?';
+    button.style.marginLeft = '5px'; // Adding some space after the text
+
+    // Append the button to the shadow root
+    shadow.appendChild(button);
+
+    // Add event listener for button click
+    button.addEventListener('click', () => {
+      const keyword = this.textContent.trim();
+      window.location.hash = keyword;
+    });
+  }
+}
+
+// Define the custom element <question-link>
+customElements.define('question-link', QuestionLink);
         </script>
+
+
+<script>
+  class CloseButton extends HTMLElement {
+      constructor() {
+          super();
+          
+          // Attach a shadow DOM tree to this instance
+          const shadow = this.attachShadow({ mode: 'open' });
+
+          // Create a <style> element for CSS
+          const style = document.createElement('style');
+          style.textContent = `
+              :host {
+                  position: absolute;
+                  top: 0;
+                  right: 0;
+                  cursor: pointer;
+                  padding: 8px; /* Optional: Add some padding */
+                  background-color: rgba(255, 255, 255, 0.8); /* Optional: Background color for better visibility */
+                  border-radius: 4px; /* Optional: Rounded corners */
+              }
+              svg {
+                  width: 16px;
+                  height: 16px;
+              }
+          `;
+
+          // Create an SVG element for the close icon
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.setAttribute('viewBox', '0 0 16 16');
+
+          // Create the lines that form an 'X'
+          const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line1.setAttribute('x1', '1');
+          line1.setAttribute('y1', '1');
+          line1.setAttribute('x2', '15');
+          line1.setAttribute('y2', '15');
+          line1.setAttribute('stroke', 'black');
+          line1.setAttribute('stroke-width', '2');
+
+          const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line2.setAttribute('x1', '15');
+          line2.setAttribute('y1', '1');
+          line2.setAttribute('x2', '1');
+          line2.setAttribute('y2', '15');
+          line2.setAttribute('stroke', 'black');
+          line2.setAttribute('stroke-width', '2');
+
+          // Append lines to the SVG
+          svg.appendChild(line1);
+          svg.appendChild(line2);
+
+          // Add an event listener for click events
+          svg.addEventListener('click', () => {
+              const parent = this.parentNode;
+              if (parent) {
+                  parent.remove();
+              }
+          });
+
+          // Append the style and SVG to the shadow DOM
+          shadow.appendChild(style);
+          shadow.appendChild(svg);
+      }
+  }
+
+  // Register the custom element with the browser
+  window.customElements.define('close-button', CloseButton);
+</script>        
       </head>
       <body>
 
@@ -143,27 +363,99 @@
              </div>
         </div>
 
-        <div class="panel quiz">
-            <!-- Content for the second panel -->
-            <form>
-            {% for q in questions %}
-            <div class="card question">
-                <p class="md-typescale-body-medium">{{ q.question|safe }}</p>
-                <div role="radiogroup" aria-labelledby="answers" class="answers">
-                    
-                    {% if q.type == 'input' %}
-                    <input type="text" speech="speech" x-webkit-speech="x-webkit-speech" />
-                    {% endif %}
-                    {% for a in q.answers %}
-                    <label for="{{ loop.index }}-radio">
-                    <div class="answer">
-                        <md-radio id="{{ loop.index }}-radio" name="group" value="{{ a }}"
-                            aria-label="First"></md-radio>
-                        <span class="answer-label">{{ a }}</span>
-                    </div></label>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
+        <div class="panel quiz"><!-- Updated form with tracking -->
+          <form id="gradeForm" method="POST" action="/submit">
+              <!-- Hidden input to store the page load timestamp -->
+              <input type="hidden" id="pageLoadTime" name="pageLoadTime" />
+          
+              {% for q in questions %}
+              <div class="card question">
+                  <p class="md-typescale-body-medium">{{ q.question|safe }}</p>
+                  <div role="radiogroup" aria-labelledby="answers" class="answers">
+          
+                      {% if q.type == 'input' %}
+                      <listen-question for="{{ q.correct }}-spell"></listen-question>
+                      <input type="text" 
+                             required 
+                             id="{{ q.correct }}-spell" 
+                             name="question{{ q.correct }}_answer" 
+                             speech="speech" 
+                             x-webkit-speech="x-webkit-speech" 
+                             data-question-index="{{ q.correct }}" 
+                             class="track-time" />
+                      <!-- Hidden input to store the last edit timestamp for this question -->
+                      <input type="hidden" id="{{ q.correct }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
+                      {% endif %}
+          
+                      {% for a in q.answers %}
+                      <label for="{{ q.correct }}-radio">
+                          <div class="answer">
+                              <md-radio id="{{ q.correct }}-radio" 
+                                        name="question{{ q.correct }}_answer" 
+                                        value="{{ a }}" 
+                                        aria-label="{{ a }}" 
+                                        data-question-index="{{ q.correct }}" 
+                                        class="track-time"></md-radio>
+                              <span class="answer-label">{{ a }}</span>
+                          </div>
+                      </label>
+                      <!-- Hidden input to store the last edit timestamp for this question -->
+                      <input type="hidden" id="{{ q.correct }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
+                      {% endfor %}
+                  </div>
+              </div>
+              {% endfor %}
+              <!-- Add this block just before the closing </form> tag -->
+              <button type="submit" id="submitButton" disabled>Submit</button>
+          </form>
+          
+          
         </div>
+
+
+        {% if last_session_questions %}
+        <div class="score-card">
+          Last score: {{ last_session_correct }} / {{ last_session_questions }}
+          <close-button></close-button>
+        </div>
+        {% endif %}
+        <script>
+          document.addEventListener("DOMContentLoaded", function() {
+            const form = document.getElementById('gradeForm');
+            const submitButton = document.getElementById('submitButton');
+
+            function updateSubmitButton() {
+                // Check if all required fields are filled
+                const inputs = form.querySelectorAll('input[required]');
+                const allFilled = Array.from(inputs).every(input => input.value.trim() !== '');
+                
+                submitButton.disabled = !allFilled;
+            }
+
+            // Add event listeners to each input field to check when the value changes
+            form.addEventListener('input', updateSubmitButton);
+
+            // Initial check on page load
+            updateSubmitButton();
+        });
+            document.addEventListener('DOMContentLoaded', () => {
+                // Store the page load timestamp
+                const pageLoadTime = Date.now();
+                document.getElementById('pageLoadTime').value = pageLoadTime;
+        
+                // Attach event listeners to track inputs and radio buttons
+                const trackTimeElements = document.querySelectorAll('.track-time');
+        
+                trackTimeElements.forEach(element => {
+                    element.addEventListener('input', (event) => {
+                        const questionIndex = event.target.dataset.questionIndex;
+                        const lastEditInput = document.getElementById(`${questionIndex}-lastEdit`);
+        
+                        if (lastEditInput) {
+                            lastEditInput.value = Date.now();
+                        }
+                    });
+                });
+            });
+        </script>
       </body>

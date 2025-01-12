@@ -5,6 +5,9 @@ body {
     height: 100vh;
     display: flex;
     justify-content: space-between; /* Optional if you want to remove gaps */
+    justify-content: center; /* Center horizontally */
+    align-items: flex-end;
+    position: relative;
 }
 
 .panel {
@@ -67,6 +70,11 @@ play-story {
     top: -16px;
     right: -48px;
 }
+play-word {
+    position: relative;
+    top: 7px;
+    padding: 2px 6px;
+}
 
 .story {
     padding: 2.5em;
@@ -74,4 +82,35 @@ play-story {
     line-height: 1.8em;
     font-size: large;
     font-family: sans-serif;
+}
+
+.score-card {
+    position: fixed;
+    left: 50%;
+    bottom: 51px;
+    transform: translateX(-50%);
+    background: white;
+    padding: 35px 50px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 16px;
+    border: 1px solid #e7e7e7;
+    max-width: 400px;
+    font-size: larger;
+}
+
+
+button#submitButton {
+    width: 100%;
+    padding: 16px;
+    background: #5fe99c;
+    color: black;
+    border: 1px solid #4fbd80;
+    border-radius: 3px;
+}
+
+button#submitButton:disabled {
+    background: #ddd;
+    border-color: #bdbdbd;
 }

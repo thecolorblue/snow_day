@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Required Words Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        .word-list {
+            margin-bottom: 20px;
+        }
+        .word-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        .word-list li {
+            background: #e6f7ff;
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #b3e5fc;
+            border-radius: 5px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Manage Required Words</h1>
+
+    <div class="word-list">
+        <h2>Current Required Words</h2>
+        <ul id="words"></ul>
+    </div>
+
+    <form id="addWordForm">
+        <h2>Add a New Word</h2>
+        <input type="text" id="newWord" placeholder="Enter a new word" required />
+        <button type="submit">Add Word</button>
+    </form>
+
+    <div id="message" class="message" style="display: none;"></div>
+
+    <script>
+        const apiUrl = "http://127.0.0.1:8000"; // Base API URL
+
+        // Function to fetch and display words
+        async function fetchWords() {
+            const response = await fetch(`${apiUrl}/list-required-words/`);
+            const data = await response.json();
+            const wordsList = document.getElementById("words");
+            wordsList.innerHTML = ""; // Clear existing list
+
+            data.required_words.forEach(word => {
+                const li = document.createElement("li");
+                li.textContent = word;
+                wordsList.appendChild(li);
+            });
+        }
+
+        // Function to display messages
+        function displayMessage(message, isSuccess) {
+            const messageDiv = document.getElementById("message");
+            messageDiv.style.display = "block";
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${isSuccess ? "success" : "error"}`;
+
+            setTimeout(() => {
+                messageDiv.style.display = "none";
+            }, 3000);
+        }
+
+        // Handle form submission
+        document.getElementById("addWordForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const newWord = document.getElementById("newWord").value.trim();
+
+            if (!newWord) {
+                displayMessage("Word cannot be empty!", false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/add-required-word/?word=${encodeURIComponent(newWord)}`, {
+                    method: "POST",
+                });
+
+                if (response.ok) {
+                    displayMessage("Word added successfully!", true);
+                    fetchWords(); // Refresh the word list
+                } else {
+                    const errorData = await response.json();
+                    displayMessage(errorData.detail || "Failed to add word.", false);
+                }
+            } catch (error) {
+                displayMessage("An error occurred. Please try again.", false);
+            }
+
+            document.getElementById("newWord").value = ""; // Clear input field
+        });
+
+        // Fetch and display words on page load
+        fetchWords();
+    </script>
+</body>
+</html>

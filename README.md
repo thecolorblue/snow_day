@@ -1,5 +1,3 @@
 
-- play story; play question; answer question; submit
-- generate new story
-- cycle through questions
+- test load->read->answer->submit cycle
 - track progress

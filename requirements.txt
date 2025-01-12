@@ -1,0 +1,10 @@
+fastapi==0.115.6
+pydantic==2.10.4
+Jinja2==3.1.4
+uvicorn==0.34.0
+openai==1.59.4
+langchain==0.3.14
+regex==2024.11.6
+langchain_community==0.3.14
+python-dotenv==1.0.1
+python-multipart==0.0.20
