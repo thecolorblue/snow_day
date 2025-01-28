@@ -8,6 +8,8 @@ import random
 import uvicorn
 import os
 import string
+import requests
+import markdown
 
 from openai import OpenAI
 import re
@@ -15,11 +17,14 @@ import re
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from urllib.parse import urlencode
 import sqlite3
 import logging
 from dotenv import load_dotenv
+
+from pathlib import Path
+from openai import OpenAI
 
 logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.DEBUG)
@@ -41,21 +46,76 @@ CREATE TABLE IF NOT EXISTS question_results (
 """)
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS cumulative_results (
+CREATE TABLE IF NOT EXISTS results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    cumulative_score INTEGER
+    story_id INTEGER NOT NULL,
+    score INTEGER
 )
 """)
+    
+# Create tables if they don't exist
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS story (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT NOT NULL
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        story_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        question TEXT NOT NULL,
+        key TEXT NOT NULL,
+        correct TEXT NOT NULL,
+        FOREIGN KEY (story_id) REFERENCES story (id)
+    )
+''')
 
 conn.commit()
 
 load_dotenv()
 
 # Initialize the LLM
-llm = ChatOpenAI(model="o1-mini-2024-09-12", temperature=1)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=1)
 
-# Define the required words
-required_words = {"example", "test", "response"}
+
+def generate_tts(audio_text, output_filename, output_dir="./media"):
+    # Set up your API key and endpoint
+    api_key = os.getenv("OPENAI_API_KEY")  # Pull the API key from the environment variable
+    if not api_key:
+        raise ValueError("API key not found. Please set the OPENAI_API_KEY environment variable.")
+
+    endpoint = "https://api.openai.com/v1/audio/speech"
+
+    # Define the headers and data payload
+    headers = {
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    data = {
+        "model": "tts-1",
+        "input": audio_text,
+        "voice" : "sage"
+    }
+
+    try:
+        # Make the POST request to the TTS endpoint
+        response = requests.post(endpoint, json=data, headers=headers)
+        response.raise_for_status()
+
+        # Save the response content as an MP3 file
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, output_filename)
+        
+        with open(output_path, "wb") as audio_file:
+            audio_file.write(response.content)
+
+        print(f"Audio saved successfully at: {output_path}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
 
 # Function to check if all required words are in the response
 def check_response(response: str, required_words: set) -> bool:
@@ -152,93 +212,68 @@ def get_openai_response(system, prompt):
         return None
 
 app = FastAPI()
-trick_words = [
-'Why',
-'Sure',
-'House',
-'Together',
-'Only',
-'Move',
-'Place',
-'Right',
-'Enough',
-'Laugh',
+TRICK_WORDS = [
+# 'Why',
+# 'Sure',
+# 'House',
+# 'Together',
+# 'Only',
+# 'Move',
+# 'Place',
+# 'Right',
+# 'Enough',
+# 'Laugh',
+'try',
+'laugh',
+'eight',
+'city',
+'night',
+'carry',
+'something',
+'change',
+'family',
+'every',
 ]
-genres = [
+GENRES = [
     'adventure',
     'super hero',
     'mystery',
     'comedy',
     'science fiction',
 ]
-locations = [
+LOCATIONS = [
     'under water',
     'wild west',
     'jungles of Africa',
     'Antartica',
     'Japanese Mountains',
 ]
-styles = [
+STYLES = [
     'poem',
     'comic book',
     'Shakespeare',
     'Harry Potter',
 ]
-QUESTIONS = [
-    {
-        "type": "input",
-        "question": "spell: <play-word>Why</play-word>",
-        "key": "spelling:why",
-        "correct": "why"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Sure</play-word>",
-        "key": "spelling:sure",
-        "correct": "sure"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>House</play-word>",
-        "key": "spelling:house",
-        "correct": "house"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Together</play-word>",
-        "key": "spelling:together",
-        "correct": "together"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Only</play-word>",
-        "key": "spelling:only",
-        "correct": "only"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Move</play-word>",
-        "key": "spelling:move",
-        "correct": "move"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Place</play-word>",
-        "key": "spelling:place",
-        "correct": "place"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Right</play-word>",
-        "key": "spelling:right",
-        "correct": "right"
-    },
-    {
-        "type": "input",
-        "question": "spell: <play-word>Enough</play-word>",
-        "key": "spelling:enough",
-        "correct": "enough"
-    },
+
+class Question:
+    type: str
+    question: str
+    key: str
+    correct: str
+
+    def __init__(self, type: str, question: str, key: str, correct: str):
+        self.type = type
+        self.question = question
+        self.key = key
+        self.correct = correct
+
+QUESTIONS: List[Question] = [
+    Question(
+        type="input",
+        question=f"spell: <play-word>{word}</play-word>",
+        key=f"spelling:{word}",
+        correct=word
+    ) for word in TRICK_WORDS
 ]
 # Define a Pydantic model for the incoming request data
 class Answer(BaseModel):
@@ -257,106 +292,85 @@ class NoCacheStaticFiles(StaticFiles):
         return response
 
 
-# SQLite database setup
-def setup_database():
-    conn = sqlite3.connect('story_cache.db')
-    cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS stories (
-                        cache_key TEXT PRIMARY KEY,
-                        prompt TEXT,
-                        story TEXT,
-                        required_words TEXT
-                      )''')
-    conn.commit()
-    conn.close()
-
-setup_database()
-
-def fetch_from_cache(cache_key):
-    conn = sqlite3.connect('story_cache.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT prompt, story, required_words FROM stories WHERE cache_key = ?', (cache_key,))
-    result = cursor.fetchone()
-    conn.close()
-    if result:
-        return {
-            "prompt": result[0],
-            "story": result[1],
-            "required_words": result[2]
-        }
-    return None
-
-def save_to_cache(cache_key, prompt, story, required_words):
-    conn = sqlite3.connect('story_cache.db')
-    cursor = conn.cursor()
-    cursor.execute('''INSERT OR REPLACE INTO stories (cache_key, prompt, story, required_words)
-                      VALUES (?, ?, ?, ?)''', (cache_key, prompt, story, required_words))
-    conn.commit()
-    conn.close()
-
-def generate_story(last_session_correct=None, force_new=False):
+def generate_story():
     """
     Generates a story using random questions and user preferences. Uses caching to avoid generating
     a new story unless explicitly requested via `force_new`.
     """
-    # Use a unique cache key based on last session and preferences.
-    cache_key = f"story_{last_session_correct}"
 
-    if not force_new:
-        cached_story = fetch_from_cache(cache_key)
-        if cached_story:
-            return cached_story
-
-    # Select random questions and prepare required words
     question_list = random.sample(QUESTIONS, 4)
-    word_to_question_map = {q["correct"]: q for q in question_list}
-    required_words = [item['correct'] for item in question_list]
 
-    # Build the user prompt
+    word_to_question_map = {q.correct: q for q in question_list}
+    required_words = [item.correct for item in question_list]
+
+    genre = random.choice(GENRES)
+    location = random.choice(LOCATIONS)
+    style = random.choice(STYLES)
+
+    # Use a unique cache key based on last session and preferences.
     user_prompt = f"""
-    Write an {random.choice(genres)} story located in {random.choice(locations)} in the style of {random.choice(styles)} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
+    Write an {genre} story located in {location} in the style of {style} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
     She likes basketball and her best friend is Paige. 
 
     Make the story about 2 paragraphs long.
 
-    Include these words in the story: {', '.join(required_words)}
+    Include these words in the story: {','.join(required_words)}
     """
 
-    if last_session_correct:
-        print(f"questions: {last_session_correct}")
-        print(f"correct: {last_session_correct}")
+    ordered_required_words, raw_text = get_validated_response(user_prompt, required_words)
 
-    # Generate and validate the story
-    ordered_required_words, story = get_validated_response(user_prompt, required_words)
-
-    # Save the generated story to the database
-    save_to_cache(cache_key, user_prompt, story, ordered_required_words)
-
-    return {
-        "prompt": user_prompt,
-        "story": story,
-        "required_words": ordered_required_words
-    }
+    story = replace_keywords_with_links(raw_text, ordered_required_words)
+    questions = [word_to_question_map[word] for word in ordered_required_words]
 
 
+
+    story_dict = save_assignment(story, questions)
+
+    generate_tts(raw_text, f'assignment-{story_dict["story_id"]}.mp3')
 
 # Mount static files directory (if you have any)
 app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
+app.mount("/media", NoCacheStaticFiles(directory="media"), name="media")
 app.mount("/node_modules", NoCacheStaticFiles(directory="node_modules"), name="node_modules")
 
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-@app.post("/submit")
-async def submit_form(request: Request):
+def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
+    cursor = conn.cursor()
+
+    # Fetch the story content
+    cursor.execute("SELECT content FROM story WHERE id = ?", (story_id,))
+    story_content = cursor.fetchone()
+    
+    if story_content is None:
+        raise ValueError(f"No story found for ID: {story_id}")
+    
+    story_content = story_content[0]
+    
+    # Fetch all questions associated with the story
+    cursor.execute("SELECT type, question, key, correct FROM questions WHERE story_id = ?", (story_id,))
+    questions = cursor.fetchall()
+    
+    # Convert each fetched question into a Question object (assuming you have a Question class defined)
+    question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3]) for q in questions]
+        
+    return story_content, question_list
+
+
+@app.post("/assignments/{id}/submit")
+async def submit_form(request: Request, id: int):
     form_data = await request.form()
 
     # Extract questions from the form data
     questions = []
-    cumulative_score = 0
+    score = 0
+    story_id = 0
     page_load_time = int(form_data.get("pageLoadTime", 0))
 
     for key, value in form_data.items():
+        if key == 'story_id':
+            story_id = value
         if key.startswith("question") and key.endswith("_answer"):
             question_index = key.split("question")[1].split("_answer")[0]
             last_edit_key = f"question{question_index}_lastEdit"
@@ -367,7 +381,7 @@ async def submit_form(request: Request):
             # Determine if the answer is correct
             is_correct = question_index == value
             if is_correct:
-                cumulative_score += 1
+                score += 1
 
             time_diff = last_edit - page_load_time
             if question_index != value:
@@ -406,10 +420,10 @@ async def submit_form(request: Request):
     try:
         cursor.execute(
             """
-            INSERT INTO cumulative_results (cumulative_score)
-            VALUES (?)
+            INSERT INTO results (score, story_id)
+            VALUES (?, ?)
             """,
-            (cumulative_score,)
+            (score,story_id)
         )
     except Exception as e:
         logger.error(e)
@@ -417,15 +431,145 @@ async def submit_form(request: Request):
     # Prepare URL parameters
     params = {
         "questions": len(questions),
-        "correct": cumulative_score
+        "correct": score
     }
     print(params)
-    url = f"/?{urlencode(params, doseq=True)}"
+    url = f"/assignments/{str(id + 1)}?{urlencode(params, doseq=True)}"
 
     return RedirectResponse(url=url, status_code=303)
 
+@app.get("/assignments/{id}", response_class=HTMLResponse)
+async def start_assignment(request: Request, id: str):
+    """
+        Start an assignment in the database
+    """
+    last_session_questions = request.query_params.get('questions')
+    last_session_correct = request.query_params.get('correct')
 
-@app.get("/", response_class=HTMLResponse)
+    story, questions = get_assignment(id)
+
+    return templates.TemplateResponse('classroom.html', {
+        "request": request,
+        "story_id": id,
+        "story": markdown.markdown(story),
+        "questions": questions,
+        "last_session_questions": last_session_questions,
+        "last_session_correct": last_session_correct
+    })
+
+def get_student_assignments() -> List[Dict]:
+    """
+        return all stories without results
+        Use this query:
+        SELECT s.*
+        FROM story s
+        LEFT JOIN results r ON s.id = r.story_id
+        WHERE r.id IS NULL;
+    """
+
+
+    # Execute the SQL query
+    query = """
+    SELECT s.*
+    FROM story s
+    LEFT JOIN results r ON s.id = r.story_id
+    WHERE r.id IS NULL;
+    """
+    cursor.execute(query)
+
+    # Fetch all rows from the result set
+    rows = cursor.fetchall()
+
+    # Get column names from the cursor description
+    columns = [description[0] for description in cursor.description]
+
+    # Convert each row into a dictionary
+    assignments = [dict(zip(columns, row)) for row in rows]
+
+    return assignments
+
+@app.get("/assignments", response_class=HTMLResponse)
+async def assignment_dashboard(request: Request):
+    """
+        View the Assignement Dashboard
+    """
+
+    assignments = get_student_assignments()
+
+    return templates.TemplateResponse("assignments.html", {
+        "request": request,
+        "assignments": assignments
+    })
+
+def save_assignment(story: str, questions: List[Question]):
+    """
+    Save story and questions to the SQLite database.
+    
+    :param story: The story content as a string.
+    :param questions: A list of Question objects.
+    """
+    # Connect to the SQLite database
+    cursor = conn.cursor()
+    
+    # Insert the story into the story table
+    cursor.execute('INSERT INTO story (content) VALUES (?)', (story,))
+    story_id = cursor.lastrowid  # Get the ID of the newly inserted story
+    
+    # Insert questions into the questions table, linking them to the story by story_id
+    for question in questions:
+        cursor.execute('''
+            INSERT INTO questions (story_id, type, question, key, correct)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (story_id, question.type, question.question, question.key, question.correct))
+    
+    # Commit changes and close the connection
+    conn.commit()
+
+    return {
+        "story_id": story_id,
+    }
+
+@app.post("/assignements/create")
+async def create_new_assignments(request: Request):
+    """
+        create one or more new assignements based on parameters.
+    """
+    model, location, style, genre, required_words = await request.form()
+
+    if len(required_words) == 0:    
+        question_list = random.sample(QUESTIONS, 4)
+
+    word_to_question_map = {q["correct"]: q for q in question_list}
+    required_words = [item['correct'] for item in question_list]
+
+    if genre == None:
+        genre = random.choice(GENRES)
+
+    if location == None:
+        location = random.choice(LOCATIONS)
+
+    if style == None:
+        style = random.choice(STYLES)
+
+    user_prompt = f"""
+    Write an {genre} story located in {location} in the style of {style} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
+    She likes basketball and her best friend is Paige. 
+
+    Make the story about 2 paragraphs long.
+
+    Include these words in the story: {','.join(required_words)}
+    """
+
+    ordered_required_words, story = get_validated_response(user_prompt, required_words)
+    story = replace_keywords_with_links(story, ordered_required_words)
+    questions = [word_to_question_map[word] for word in ordered_required_words]
+
+    save_assignment(story, questions)
+
+    return RedirectResponse(url="/assignments/", status_code=303)
+
+
+@app.get("/classroom_page", response_class=HTMLResponse)
 async def read_root(request: Request):
     last_session_questions = request.query_params.get('questions')
     last_session_correct = request.query_params.get('correct')
@@ -433,7 +577,7 @@ async def read_root(request: Request):
     word_to_question_map = {q["correct"]: q for q in question_list}
     required_words = [item['correct'] for item in question_list]
     user_prompt = f"""
-    Write an {random.choice(genres)} story located in {random.choice(locations)} in the style of {random.choice(styles)} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
+    Write an {random.choice(GENRES)} story located in {random.choice(LOCATIONS)} in the style of {random.choice(STYLES)} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
     She likes basketball and her best friend is Paige. 
 
     Make the story about 2 paragraphs long.
@@ -462,6 +606,7 @@ async def read_root(request: Request):
         "last_session_questions": last_session_questions,
         "last_session_correct": last_session_correct
     })
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

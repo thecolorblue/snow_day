@@ -19,7 +19,7 @@ body {
 }
 
 .content {
-    background-color: #f3f3f3;
+    background-color: #b4b9f9;
     position: relative;
 }
 
@@ -113,4 +113,10 @@ button#submitButton {
 button#submitButton:disabled {
     background: #ddd;
     border-color: #bdbdbd;
+}
+
+audio {
+    position: absolute;
+    top: -27px;
+    right: -24px;
 }

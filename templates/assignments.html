@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Table Component</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/static/styles/assignments.css" rel="stylesheet" />
+</head>
+<body>
+    <h1>Story Table Example</h1>
+    <story-table assignments='{{ assignments | tojson }}'></story-table>
+
+    <script type="module">
+        class StoryTable extends HTMLElement {
+            constructor() {
+                super();
+                // Attach a shadow DOM to the element.
+                this.attachShadow({ mode: 'open' });
+
+                // Create a template for the component.
+                const template = document.createElement('template');
+                template.innerHTML = `
+                    <style>
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: left;
+                        }
+
+                        th {
+                            background-color: #f4f4f4;
+                        }
+
+                        button {
+                            background-color: #007BFF;
+                            color: white;
+                            border: none;
+                            padding: 5px 10px;
+                            cursor: pointer;
+                            border-radius: 3px;
+                        }
+
+                        button:hover {
+                            background-color: #0056b3;
+                        }
+                    </style>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Story Beginning</th>
+                                <th>Start</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                `;
+
+                // Append the template content to the shadow DOM.
+                this.shadowRoot.appendChild(template.content.cloneNode(true));
+            }
+
+            // Observed attributes for detecting changes.
+            static get observedAttributes() {
+                return ['assignments'];
+            }
+
+            // Called when the observed attribute changes.
+            attributeChangedCallback(name, oldValue, newValue) {
+                if (name === 'assignments') {
+                    this.renderTable(JSON.parse(newValue));
+                }
+            }
+
+            // Renders the table rows based on the assignments data.
+            renderTable(assignments) {
+                const tbody = this.shadowRoot.querySelector('tbody');
+                tbody.innerHTML = ''; // Clear existing rows.
+
+                assignments.forEach(assignment => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${assignment.content.length > 50 ? assignment.content.substring(0, 50) + '...' : assignment.content}</td>
+                        <td><button onclick="location.href='/assignments/${assignment.id}'">start</button></td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Define the custom element.
+        customElements.define('story-table', StoryTable);
+    </script>
+</body>
+</html>
