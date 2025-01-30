@@ -328,134 +328,6 @@ def generate_story():
 
     generate_tts(raw_text, f'assignment-{story_dict["story_id"]}.mp3')
 
-# Mount static files directory (if you have any)
-app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
-app.mount("/media", NoCacheStaticFiles(directory="media"), name="media")
-app.mount("/node_modules", NoCacheStaticFiles(directory="node_modules"), name="node_modules")
-
-# Initialize Jinja2 templates
-templates = Jinja2Templates(directory="templates")
-
-def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
-    cursor = conn.cursor()
-
-    # Fetch the story content
-    cursor.execute("SELECT content FROM story WHERE id = ?", (story_id,))
-    story_content = cursor.fetchone()
-    
-    if story_content is None:
-        raise ValueError(f"No story found for ID: {story_id}")
-    
-    story_content = story_content[0]
-    
-    # Fetch all questions associated with the story
-    cursor.execute("SELECT type, question, key, correct FROM questions WHERE story_id = ?", (story_id,))
-    questions = cursor.fetchall()
-    
-    # Convert each fetched question into a Question object (assuming you have a Question class defined)
-    question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3]) for q in questions]
-        
-    return story_content, question_list
-
-
-@app.post("/assignments/{id}/submit")
-async def submit_form(request: Request, id: int):
-    form_data = await request.form()
-
-    # Extract questions from the form data
-    questions = []
-    score = 0
-    story_id = 0
-    page_load_time = int(form_data.get("pageLoadTime", 0))
-
-    for key, value in form_data.items():
-        if key == 'story_id':
-            story_id = value
-        if key.startswith("question") and key.endswith("_answer"):
-            question_index = key.split("question")[1].split("_answer")[0]
-            last_edit_key = f"question{question_index}_lastEdit"
-            last_edit = int(form_data.get(last_edit_key, 0))
-
-            # Determine the score for the question
-
-            # Determine if the answer is correct
-            is_correct = question_index == value
-            if is_correct:
-                score += 1
-
-            time_diff = last_edit - page_load_time
-            if question_index != value:
-                question_score = 0
-            elif time_diff < 10000:
-                question_score = 1
-            elif 10000 <= time_diff < 20000:
-                question_score = 2
-            elif time_diff > 30000:
-                question_score = 3
-            else:
-                question_score = 0
-
-            question_data = {
-                "correct": question_index,
-                "answer": value,
-                "last_edit": last_edit,
-                "score": question_score
-            }
-
-            # Insert question data into the database
-            try:
-                cursor.execute(
-                    """
-                    INSERT INTO question_results (correct, answer, last_edit, score)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (question_index, value, last_edit, question_score)
-                )
-            except Exception as e:
-                logger.error(e)
-
-            questions.append(question_data)
-
-    # Insert cumulative score into the database
-    try:
-        cursor.execute(
-            """
-            INSERT INTO results (score, story_id)
-            VALUES (?, ?)
-            """,
-            (score,story_id)
-        )
-    except Exception as e:
-        logger.error(e)
-
-    # Prepare URL parameters
-    params = {
-        "questions": len(questions),
-        "correct": score
-    }
-    print(params)
-    url = f"/assignments/{str(id + 1)}?{urlencode(params, doseq=True)}"
-
-    return RedirectResponse(url=url, status_code=303)
-
-@app.get("/assignments/{id}", response_class=HTMLResponse)
-async def start_assignment(request: Request, id: str):
-    """
-        Start an assignment in the database
-    """
-    last_session_questions = request.query_params.get('questions')
-    last_session_correct = request.query_params.get('correct')
-
-    story, questions = get_assignment(id)
-
-    return templates.TemplateResponse('classroom.html', {
-        "request": request,
-        "story_id": id,
-        "story": markdown.markdown(story),
-        "questions": questions,
-        "last_session_questions": last_session_questions,
-        "last_session_correct": last_session_correct
-    })
 
 def get_student_assignments() -> List[Dict]:
     """
@@ -488,18 +360,7 @@ def get_student_assignments() -> List[Dict]:
 
     return assignments
 
-@app.get("/assignments", response_class=HTMLResponse)
-async def assignment_dashboard(request: Request):
-    """
-        View the Assignement Dashboard
-    """
 
-    assignments = get_student_assignments()
-
-    return templates.TemplateResponse("assignments.html", {
-        "request": request,
-        "assignments": assignments
-    })
 
 def save_assignment(story: str, questions: List[Question]):
     """
@@ -528,6 +389,176 @@ def save_assignment(story: str, questions: List[Question]):
     return {
         "story_id": story_id,
     }
+
+
+def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
+    cursor = conn.cursor()
+
+    # Fetch the story content
+    cursor.execute("SELECT content FROM story WHERE id = ?", (story_id,))
+    story_content = cursor.fetchone()
+    
+    if story_content is None:
+        raise ValueError(f"No story found for ID: {story_id}")
+    
+    story_content = story_content[0]
+    
+    # Fetch all questions associated with the story
+    cursor.execute("SELECT type, question, key, correct FROM questions WHERE story_id = ?", (story_id,))
+    questions = cursor.fetchall()
+    
+    # Convert each fetched question into a Question object (assuming you have a Question class defined)
+    question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3]) for q in questions]
+        
+    return story_content, question_list
+
+
+# Mount static files directory (if you have any)
+app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
+app.mount("/media", NoCacheStaticFiles(directory="media"), name="media")
+app.mount("/node_modules", NoCacheStaticFiles(directory="node_modules"), name="node_modules")
+
+# Initialize Jinja2 templates
+templates = Jinja2Templates(directory="templates")
+
+
+@app.post("/assignments/{story_id}/submit")
+async def submit_form(request: Request, story_id: int):
+    form_data = await request.form()
+
+    form_dict = {key: value for key, value in form_data.items()}
+
+    # Create the questions array by collecting answer and lastEdit pairs
+    questions = []
+    last_answer = 0
+
+    # Iterate over the keys to extract 'answer' and 'lastEdit' pairs for each question
+    for i in range(1, 5):  # Assuming questions are sequentially numbered
+        answer_key = f'question{i}_answer'
+        last_edit_key = f'question{i}_lastEdit'
+        last_edit_time = int(form_dict[last_edit_key])
+        if last_edit_time > last_answer:
+            last_answer = last_edit_time
+        
+        if answer_key in form_dict and last_edit_key in form_dict:
+            questions.append({
+                'answer': form_dict[answer_key],
+                'lastEdit': form_dict[last_edit_key]
+            })
+
+    # Print the questions array
+    print(form_dict['pageLoadTime'])
+    print(last_answer)
+    print(last_answer - int(form_dict['pageLoadTime']),story_id)
+    print(questions)
+    # Extract questions from the form data
+    # questions = []
+    # score = 0
+    # story_id = 0
+    # page_load_time = int(form_data.get("pageLoadTime", 0))
+
+    # for key, value in form_data.items():
+    #     if key == 'story_id':
+    #         story_id = value
+    #     if key.startswith("question") and key.endswith("_answer"):
+    #         question_index = key.split("question")[1].split("_answer")[0]
+    #         last_edit_key = f"question{question_index}_lastEdit"
+    #         last_edit = int(form_data.get(last_edit_key, 0))
+
+    #         # Determine the score for the question
+
+    #         # Determine if the answer is correct
+    #         is_correct = question_index == value
+    #         if is_correct:
+    #             score += 1
+
+    #         time_diff = last_edit - page_load_time
+    #         if question_index != value:
+    #             question_score = 0
+    #         elif time_diff < 10000:
+    #             question_score = 1
+    #         elif 10000 <= time_diff < 20000:
+    #             question_score = 2
+    #         elif time_diff > 30000:
+    #             question_score = 3
+    #         else:
+    #             question_score = 0
+
+    #         question_data = {
+    #             "correct": question_index,
+    #             "answer": value,
+    #             "last_edit": last_edit,
+    #             "score": question_score
+    #         }
+
+    #         # Insert question data into the database
+    #         try:
+    #             cursor.execute(
+    #                 """
+    #                 INSERT INTO question_results (correct, answer, last_edit, score)
+    #                 VALUES (?, ?, ?, ?)
+    #                 """,
+    #                 (question_index, value, last_edit, question_score)
+    #             )
+    #         except Exception as e:
+    #             logger.error(e)
+
+    #         questions.append(question_data)
+
+    # # Insert cumulative score into the database
+    try:
+        cursor.execute(
+            """
+            INSERT INTO results (score, story_id)
+            VALUES (?, ?)
+            """,
+            (last_answer - int(form_dict['pageLoadTime']),story_id)
+        )
+        conn.commit()
+    except Exception as e:
+        logger.error(e)
+
+    # # Prepare URL parameters
+    # params = {
+    #     "questions": len(questions),
+    #     "correct": score
+    # }
+    # print(params)
+    # url = f"/assignments/{str(id + 1)}?{urlencode(params, doseq=True)}"
+
+    return RedirectResponse(url='/assignments/', status_code=303)
+
+@app.get("/assignments/{id}", response_class=HTMLResponse)
+async def start_assignment(request: Request, id: str):
+    """
+        Start an assignment in the database
+    """
+    last_session_questions = request.query_params.get('questions')
+    last_session_correct = request.query_params.get('correct')
+
+    story, questions = get_assignment(id)
+
+    return templates.TemplateResponse('classroom.html', {
+        "request": request,
+        "story_id": id,
+        "story": markdown.markdown(story),
+        "questions": questions,
+        "last_session_questions": last_session_questions,
+        "last_session_correct": last_session_correct
+    })
+
+@app.get("/assignments", response_class=HTMLResponse)
+async def assignment_dashboard(request: Request):
+    """
+        View the Assignement Dashboard
+    """
+
+    assignments = get_student_assignments()
+
+    return templates.TemplateResponse("assignments.html", {
+        "request": request,
+        "assignments": assignments
+    })
 
 @app.post("/assignements/create")
 async def create_new_assignments(request: Request):
