@@ -69,6 +69,7 @@ cursor.execute('''
         question TEXT NOT NULL,
         key TEXT NOT NULL,
         correct TEXT NOT NULL,
+        answers TEXT,
         FOREIGN KEY (story_id) REFERENCES story (id)
     )
 ''')
@@ -138,6 +139,42 @@ def extract_ordered_required_words(response, required_words):
     
     return ordered_required_words
 
+
+def append_string_randomly(data_list, string_to_append):
+    """Appends a string at a random index within a list.
+
+    Args:
+        data_list: The list to modify.
+        string_to_append: The string to insert.
+    """
+    if not data_list:
+      data_list.append(string_to_append)
+      return
+    random_index = random.randint(0, len(data_list))
+    data_list.insert(random_index, string_to_append)
+    
+    return data_list
+
+
+def gen_incorrect_answers(word_list: List[str])-> List[List[str]]:
+    responses = []
+    
+    for word in word_list:
+        prompt = f"""
+Take a word and return 3 incorrect spellings of that word. Make one completely wrong and two close but incorrect.
+
+Only reply with a list of three words seperated by commas.
+
+Here is the word: {word}
+        """
+        text_response = llm([HumanMessage(content=prompt)]).content
+        response = text_response.split(',')
+        list = append_string_randomly(response, word)
+        responses.append(list)
+
+    return responses
+
+
 # Main function to generate and validate LLM responses
 def get_validated_response(prompt: str, required_words: set, max_attempts: int = 5):
     original_prompt = prompt  # Store the original prompt
@@ -171,7 +208,7 @@ def replace_keywords_with_links(input_string, keywords):
     # Define a function to be used as the replacement function in re.sub
     def replace_func(match):
         keyword = match.group(0)
-        return f'<question-link>{keyword}</question-link>'
+        return f'<play-word>{keyword}</play-word>'
     
     # Create a regex pattern that matches any of the keywords
     pattern = r'\b(' + '|'.join(re.escape(keyword) for keyword in keywords) + r')\b'
@@ -223,16 +260,28 @@ TRICK_WORDS = [
 # 'Right',
 # 'Enough',
 # 'Laugh',
-'try',
-'laugh',
+
+# 'try',
+# 'laugh',
+# 'eight',
+# 'city',
+# 'night',
+# 'carry',
+# 'something',
+# 'change',
+# 'family',
+# 'every',
+
 'eight',
-'city',
+'large',
 'night',
-'carry',
-'something',
-'change',
-'family',
-'every',
+'answer',
+'different',
+'world',
+'continent',
+'ocean',
+'country',
+
 ]
 GENRES = [
     'adventure',
@@ -254,18 +303,37 @@ STYLES = [
     'Shakespeare',
     'Harry Potter',
 ]
+INTERESTS = [
+    'basketball',
+    'acting',
+    'directing plays',
+    'American Girl dolls',
+    'skateboarding',
+    'ice skating',
+    'Mario Kart',
+    'Zelda',
+]
+
+FRIENDS = [
+    'Paige',
+    'Maia',
+    'Zadie',
+    'Zoe',
+]
 
 class Question:
     type: str
     question: str
     key: str
     correct: str
+    answers: List[str]
 
-    def __init__(self, type: str, question: str, key: str, correct: str):
+    def __init__(self, type: str, question: str, key: str, correct: str, answers: List[str] = None):
         self.type = type
         self.question = question
         self.key = key
         self.correct = correct
+        self.answers = answers
 
 QUESTIONS: List[Question] = [
     Question(
@@ -298,7 +366,7 @@ def generate_story():
     a new story unless explicitly requested via `force_new`.
     """
 
-    question_list = random.sample(QUESTIONS, 4)
+    question_list = random.sample(QUESTIONS, 6)
 
     word_to_question_map = {q.correct: q for q in question_list}
     required_words = [item.correct for item in question_list]
@@ -306,11 +374,14 @@ def generate_story():
     genre = random.choice(GENRES)
     location = random.choice(LOCATIONS)
     style = random.choice(STYLES)
+    interest1 = random.choice(INTERESTS)
+    interest2 = random.choice(INTERESTS)
+    friend = random.choice(FRIENDS)
 
     # Use a unique cache key based on last session and preferences.
     user_prompt = f"""
-    Write an {genre} story located in {location} in the style of {style} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
-    She likes basketball and her best friend is Paige. 
+    Write an {genre} story located in {location} in the style of {style} for Maeve who is 8 years old. It should be very silly. Over the top silly.
+    She likes {interest1}, and {interest2}, and her best friend is {friend}. 
 
     Make the story about 2 paragraphs long.
 
@@ -319,10 +390,11 @@ def generate_story():
 
     ordered_required_words, raw_text = get_validated_response(user_prompt, required_words)
 
+    if ordered_required_words == None:
+        return
+
     story = replace_keywords_with_links(raw_text, ordered_required_words)
     questions = [word_to_question_map[word] for word in ordered_required_words]
-
-
 
     story_dict = save_assignment(story, questions)
 
@@ -342,10 +414,10 @@ def get_student_assignments() -> List[Dict]:
 
     # Execute the SQL query
     query = """
-    SELECT s.*
+    SELECT s.id as story_id, s.content as content, r.score as score
     FROM story s
-    LEFT JOIN results r ON s.id = r.story_id
-    WHERE r.id IS NULL;
+    left JOIN results r ON s.id = r.story_id
+
     """
     cursor.execute(query)
 
@@ -428,23 +500,45 @@ async def submit_form(request: Request, story_id: int):
 
     form_dict = {key: value for key, value in form_data.items()}
 
-    # Create the questions array by collecting answer and lastEdit pairs
-    questions = []
+    # Create a set to collect unique question numbers dynamically
+    question_numbers = set()
     last_answer = 0
 
-    # Iterate over the keys to extract 'answer' and 'lastEdit' pairs for each question
-    for i in range(1, 5):  # Assuming questions are sequentially numbered
-        answer_key = f'question{i}_answer'
-        last_edit_key = f'question{i}_lastEdit'
+    # Use a regular expression to find all question numbers from keys
+    for key in form_dict.keys():
+        match = re.match(r'question(\d+)_answer', key)
+        if match:
+            question_numbers.add(int(match.group(1)))
+
+    # Sort the question numbers to maintain order
+    question_numbers = sorted(question_numbers)
+
+    # Create the questions array
+    questions = []
+
+    # Collect the answer and lastEdit pairs for each question
+    for num in question_numbers:
+        answer_key = f'question{num}_answer'
+        last_edit_key = f'question{num}_lastEdit'
         last_edit_time = int(form_dict[last_edit_key])
         if last_edit_time > last_answer:
             last_answer = last_edit_time
         
         if answer_key in form_dict and last_edit_key in form_dict:
+
+            cursor.execute(
+                """
+                INSERT INTO question_results (correct, answer, last_edit, score)
+                VALUES (?, ?, ?, ?)
+                """,
+                (f"{story_id}", form_dict[answer_key], form_dict[last_edit_key], int(form_dict[last_edit_key]) - int(form_dict['pageLoadTime']))
+            )
             questions.append({
                 'answer': form_dict[answer_key],
                 'lastEdit': form_dict[last_edit_key]
             })
+
+    conn.commit()
 
     # Print the questions array
     print(form_dict['pageLoadTime'])

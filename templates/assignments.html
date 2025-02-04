@@ -25,12 +25,17 @@
                         table {
                             width: 100%;
                             border-collapse: collapse;
+                            background-color: white;
                         }
 
                         th, td {
                             border: 1px solid #ddd;
                             padding: 8px;
                             text-align: left;
+                        }
+
+                        tbody {
+                            background-color: white;
                         }
 
                         th {
@@ -50,11 +55,11 @@
                             background-color: #0056b3;
                         }
                     </style>
-                    <table>
+                    <table part="table">
                         <thead>
                             <tr>
                                 <th>Story</th>
-                                <th>Start</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -77,18 +82,27 @@
                 }
             }
 
+            renderAssignmentRow({content, score, story_id}) {
+                const contents = content.length > 50 ? content.substring(0, 50) + '...' : content;
+                const score_start = score ? 
+                    `<span class="score">${score}</span>`: 
+                    `<button onclick="location.href='/assignments/${story_id}'">start</button>`;
+
+                return `
+                    <td>${contents}</td>
+                    <td>${score_start}</td>
+                `;
+            }
+
             // Renders the table rows based on the assignments data.
             renderTable(assignments) {
                 const tbody = this.shadowRoot.querySelector('tbody');
-                tbody.innerHTML = ''; // Clear existing rows.
+                tbody.innerHTML = '';
 
                 assignments.forEach(assignment => {
                     const row = document.createElement('tr');
 
-                    row.innerHTML = `
-                        <td>${assignment.content.length > 50 ? assignment.content.substring(0, 50) + '...' : assignment.content}</td>
-                        <td><button onclick="location.href='/assignments/${assignment.id}'">start</button></td>
-                    `;
+                    row.innerHTML = this.renderAssignmentRow(assignment);
 
                     tbody.appendChild(row);
                 });

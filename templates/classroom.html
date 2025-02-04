@@ -12,6 +12,7 @@
             }
           }
         </script>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
         <template id="play-story-template">
           <md-filled-tonal-button class="button-play">
             play
@@ -366,7 +367,7 @@ customElements.define('question-link', QuestionLink);
         </div>
 
         <div class="panel quiz"><!-- Updated form with tracking -->
-          <form id="gradeForm" method="POST" action="/assignments/{{story_id}}/submit">
+          <form id="gradeForm" autocomplete="off" method="POST" action="/assignments/{{story_id}}/submit">
               <!-- Hidden input to store the page load timestamp -->
               <input type="hidden" id="pageLoadTime" name="pageLoadTime" />
           
@@ -375,10 +376,10 @@ customElements.define('question-link', QuestionLink);
                   <p class="md-typescale-body-medium">{{ q.question|safe }}</p>
                   <div role="radiogroup" aria-labelledby="answers" class="answers">
           
-                      {% if q.type == 'input' %}
                       <listen-question for="{{ loop.index }}-spell"></listen-question>
                       <input type="text" 
-                             required 
+                             required
+                             autocomplete="false"
                              id="{{ loop.index }}-spell" 
                              name="question{{ loop.index }}_answer"
                              data-answer="{{ q.correct }}"
@@ -388,23 +389,6 @@ customElements.define('question-link', QuestionLink);
                              class="track-time" />
                       <!-- Hidden input to store the last edit timestamp for this question -->
                       <input type="hidden" id="{{ loop.index }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
-                      {% endif %}
-          
-                      {% for a in q.answers %}
-                      <label for="{{ loop.index }}-radio">
-                          <div class="answer">
-                              <md-radio id="{{ loop.index }}-radio" 
-                                        name="question{{ loop.index }}_answer" 
-                                        value="{{ a }}" 
-                                        aria-label="{{ a }}" 
-                                        data-question-index="{{ loop.index }}" 
-                                        class="track-time"></md-radio>
-                              <span class="answer-label">{{ a }}</span>
-                          </div>
-                      </label>
-                      <!-- Hidden input to store the last edit timestamp for this question -->
-                      <input type="hidden" id="{{ loop.index }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
-                      {% endfor %}
                   </div>
               </div>
               {% endfor %}
@@ -431,13 +415,11 @@ customElements.define('question-link', QuestionLink);
               const inputs = Array.from(form.querySelectorAll('input[required]'));
               const allFilled = inputs.every(input => input.value.trim() !== '');
               const allMatch = inputs.every(input => {
-                const isMatch = input.value.trim() === input.getAttribute('data-answer');
+                const isMatch = input.value.trim().toLowerCase() === input.getAttribute('data-answer').toLowerCase();
                 
                 input.classList[isMatch ? 'add':'remove']('invalid');
                 
-                if (isMatch) {
-                  allMatch = false;   
-                }
+                return isMatch;
               });
               
               submitButton.disabled = !(allFilled && allMatch);
@@ -446,6 +428,30 @@ customElements.define('question-link', QuestionLink);
             form.addEventListener('input', updateSubmitButton);
 
             updateSubmitButton();
+
+            // confetti
+            submitButton.addEventListener('click', (event) => {
+              // Check if the button is disabled
+              if (submitButton.disabled) {
+                return;
+              }
+
+              event.preventDefault(); // Prevent immediate form submission
+
+              // Calculate x and y percentages of the screen where the click happened
+              const xPercent = event.clientX / window.innerWidth;
+              const yPercent = event.clientY / window.innerHeight;
+
+              // Trigger confetti and wait for the promise to resolve before submitting
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: yPercent, x: xPercent }
+              }).then(() => {
+                // Submit the form after the confetti animation
+                form.submit();
+              });
+            });
         });
             document.addEventListener('DOMContentLoaded', () => {
                 // Store the page load timestamp
@@ -466,5 +472,7 @@ customElements.define('question-link', QuestionLink);
                     });
                 });
             });
+            
         </script>
+        
       </body>
