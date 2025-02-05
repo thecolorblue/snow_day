@@ -46,7 +46,7 @@ else:
 # Create tables
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS question_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     correct TEXT,
     answer TEXT,
     last_edit INTEGER,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS question_results (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     story_id INTEGER NOT NULL,
     score INTEGER
 )
@@ -65,14 +65,14 @@ CREATE TABLE IF NOT EXISTS results (
 # Create tables if they don't exist
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS story (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         content TEXT NOT NULL
     )
 ''')
 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS questions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         story_id INTEGER NOT NULL,
         type TEXT NOT NULL,
         question TEXT NOT NULL,
