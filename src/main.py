@@ -497,7 +497,6 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
 # Mount static files directory (if you have any)
 app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 app.mount("/media", NoCacheStaticFiles(directory="media"), name="media")
-app.mount("/node_modules", NoCacheStaticFiles(directory="node_modules"), name="node_modules")
 
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="templates")
