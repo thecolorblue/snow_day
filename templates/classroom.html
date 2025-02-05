@@ -376,6 +376,7 @@ customElements.define('question-link', QuestionLink);
                   <p class="md-typescale-body-medium">{{ q.question|safe }}</p>
                   <div role="radiogroup" aria-labelledby="answers" class="answers">
           
+                      {% if q.type == 'input' %}
                       <listen-question for="{{ loop.index }}-spell"></listen-question>
                       <input type="text" 
                              required
@@ -389,6 +390,23 @@ customElements.define('question-link', QuestionLink);
                              class="track-time" />
                       <!-- Hidden input to store the last edit timestamp for this question -->
                       <input type="hidden" id="{{ loop.index }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
+                      {% endif %}
+          
+                      {% for a in q.answers %}
+                      <label for="{{ loop.index }}-radio">
+                          <div class="answer">
+                              <md-radio id="{{ loop.index }}-radio" 
+                                        name="question{{ loop.index }}_answer" 
+                                        value="{{ a }}" 
+                                        aria-label="{{ a }}" 
+                                        data-question-index="{{ loop.index }}" 
+                                        class="track-time"></md-radio>
+                              <span class="answer-label">{{ a }}</span>
+                          </div>
+                      </label>
+                      <!-- Hidden input to store the last edit timestamp for this question -->
+                      <input type="hidden" id="{{ loop.index }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
+                      {% endfor %}
                   </div>
               </div>
               {% endfor %}

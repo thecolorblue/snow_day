@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Form, Request, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.responses import HTMLResponse
@@ -25,14 +25,23 @@ from dotenv import load_dotenv
 
 from pathlib import Path
 from openai import OpenAI
+import psycopg2
 
 logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.DEBUG)
 
 
-# Initialize SQLite database
-conn = sqlite3.connect("results.db")
-cursor = conn.cursor()
+# Get the DATABASE_URL from environment variables
+database_url = os.getenv('DATABASE_URL')
+
+if database_url:
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(database_url)
+    cursor = conn.cursor()
+else:
+    # Connect to SQLite
+    conn = sqlite3.connect("results.db")
+    cursor = conn.cursor()
 
 # Create tables
 cursor.execute("""
@@ -622,6 +631,7 @@ async def submit_form(request: Request, story_id: int):
 
     return RedirectResponse(url='/assignments/', status_code=303)
 
+
 @app.get("/assignments/{id}", response_class=HTMLResponse)
 async def start_assignment(request: Request, id: str):
     """
@@ -641,6 +651,7 @@ async def start_assignment(request: Request, id: str):
         "last_session_correct": last_session_correct
     })
 
+
 @app.get("/assignments", response_class=HTMLResponse)
 async def assignment_dashboard(request: Request):
     """
@@ -654,42 +665,65 @@ async def assignment_dashboard(request: Request):
         "assignments": assignments
     })
 
-@app.post("/assignements/create")
-async def create_new_assignments(request: Request):
+
+@app.get("/assignment/create", response_class=HTMLResponse)
+async def assignment_dashboard(request: Request):
     """
-        create one or more new assignements based on parameters.
+        Create Assignments
     """
-    model, location, style, genre, required_words = await request.form()
 
-    if len(required_words) == 0:    
-        question_list = random.sample(QUESTIONS, 4)
+    return templates.TemplateResponse("create_assignment.html", {
+        "request": request
+    })
+                                      
 
-    word_to_question_map = {q["correct"]: q for q in question_list}
-    required_words = [item['correct'] for item in question_list]
+@app.post("/assignments")
+async def create_assignment(
+    trick_words: list[str] = Form([]),
+    genres: str | None = Form(None),
+    locations: str | None = Form(None),
+    styles: str | None = Form(None),
+    interests: list[str] = Form([]),
+    friends: list[str] = Form([])
+):
+    # Select random questions and words
+    question_list = trick_words or random.sample(QUESTIONS, 6)
+    word_to_question_map = {q.correct: q for q in question_list}
+    required_words = [item.correct for item in question_list]
 
-    if genre == None:
-        genre = random.choice(GENRES)
+    genre = genres or random.choice(GENRES)
+    location = locations or random.choice(LOCATIONS)
+    style = styles or random.choice(STYLES)
+    selected_interests = interests if interests else random.sample(INTERESTS, 2)
+    friend = random.choice(friends or FRIENDS)
 
-    if location == None:
-        location = random.choice(LOCATIONS)
-
-    if style == None:
-        style = random.choice(STYLES)
+    # Build user prompt with all interests dynamically
+    interests_text = ', '.join(selected_interests)
 
     user_prompt = f"""
-    Write an {genre} story located in {location} in the style of {style} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
-    She likes basketball and her best friend is Paige. 
+    Write an {genre} story located in {location} in the style of {style} for Maeve who is 8 years old. It should be very silly. Over the top silly.
+    She likes {interests_text}, and her best friend is {friend}.
 
     Make the story about 2 paragraphs long.
 
-    Include these words in the story: {','.join(required_words)}
+    Include these words in the story: {', '.join(required_words)}
     """
 
-    ordered_required_words, story = get_validated_response(user_prompt, required_words)
-    story = replace_keywords_with_links(story, ordered_required_words)
-    questions = [word_to_question_map[word] for word in ordered_required_words]
+    # Generate and validate the story
+    ordered_required_words, raw_text = get_validated_response(user_prompt, required_words)
 
-    save_assignment(story, questions)
+    if ordered_required_words is None:
+        return {"error": "Failed to generate a story with valid words."}
+
+    # Replace keywords and save the story
+    story = replace_keywords_with_links(raw_text, ordered_required_words)
+    questions = [word_to_question_map[word] for word in ordered_required_words]
+    story_dict = save_assignment(story, questions)
+
+    # Generate text-to-speech (TTS)
+    generate_tts(raw_text, f"assignment-{story_dict['story_id']}.mp3")
+
+    return {"message": "Story created successfully", "story_id": story_dict["story_id"]}
 
     return RedirectResponse(url="/assignments/", status_code=303)
 
