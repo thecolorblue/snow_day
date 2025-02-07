@@ -454,14 +454,14 @@ def save_assignment(story: str, questions: List[Question]):
     cursor = conn.cursor()
     
     # Insert the story into the story table
-    cursor.execute('INSERT INTO story (content) VALUES (?)', (story,))
+    cursor.execute('INSERT INTO story (content) VALUES (%s)', (story,))
     story_id = cursor.lastrowid  # Get the ID of the newly inserted story
     
     # Insert questions into the questions table, linking them to the story by story_id
     for question in questions:
         cursor.execute('''
             INSERT INTO questions (story_id, type, question, key, correct)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (story_id, question.type, question.question, question.key, question.correct))
     
     # Commit changes and close the connection
@@ -476,7 +476,7 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
     cursor = conn.cursor()
 
     # Fetch the story content
-    cursor.execute("SELECT content FROM story WHERE id = ?", (story_id,))
+    cursor.execute("SELECT content FROM story WHERE id = %s", (story_id,))
     story_content = cursor.fetchone()
     
     if story_content is None:
@@ -485,7 +485,7 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
     story_content = story_content[0]
     
     # Fetch all questions associated with the story
-    cursor.execute("SELECT type, question, key, correct FROM questions WHERE story_id = ?", (story_id,))
+    cursor.execute("SELECT type, question, key, correct FROM questions WHERE story_id = %s", (story_id,))
     questions = cursor.fetchall()
     
     # Convert each fetched question into a Question object (assuming you have a Question class defined)
@@ -537,7 +537,7 @@ async def submit_form(request: Request, story_id: int):
             cursor.execute(
                 """
                 INSERT INTO question_results (correct, answer, last_edit, score)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
                 """,
                 (f"{story_id}", form_dict[answer_key], form_dict[last_edit_key], int(form_dict[last_edit_key]) - int(form_dict['pageLoadTime']))
             )
@@ -612,7 +612,7 @@ async def submit_form(request: Request, story_id: int):
         cursor.execute(
             """
             INSERT INTO results (score, story_id)
-            VALUES (?, ?)
+            VALUES (%s, %s)
             """,
             (last_answer - int(form_dict['pageLoadTime']),story_id)
         )
