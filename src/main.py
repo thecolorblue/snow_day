@@ -5,7 +5,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import random
-import uvicorn
 import os
 import string
 import requests
@@ -29,6 +28,8 @@ import psycopg2
 
 logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.DEBUG)
+
+load_dotenv()
 
 
 # Get the DATABASE_URL from environment variables
@@ -84,8 +85,6 @@ cursor.execute('''
 ''')
 
 conn.commit()
-
-load_dotenv()
 
 # Initialize the LLM
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=1)
@@ -442,7 +441,6 @@ def get_student_assignments() -> List[Dict]:
     return assignments
 
 
-
 def save_assignment(story: str, questions: List[Question]):
     """
     Save story and questions to the SQLite database.
@@ -453,9 +451,10 @@ def save_assignment(story: str, questions: List[Question]):
     # Connect to the SQLite database
     cursor = conn.cursor()
     
-    # Insert the story into the story table
-    cursor.execute('INSERT INTO story (content) VALUES (%s)', (story,))
-    story_id = cursor.lastrowid  # Get the ID of the newly inserted story
+    cursor.execute('INSERT INTO story (content) VALUES (%s) RETURNING id', (story,))
+    story_id = cursor.fetchone()[0]
+    
+    conn.commit()
     
     # Insert questions into the questions table, linking them to the story by story_id
     for question in questions:
@@ -490,6 +489,8 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
     
     # Convert each fetched question into a Question object (assuming you have a Question class defined)
     question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3]) for q in questions]
+
+    cursor.close()
         
     return story_content, question_list
 
@@ -679,9 +680,9 @@ async def assignment_dashboard(request: Request):
 @app.post("/assignments")
 async def create_assignment(
     trick_words: list[str] = Form([]),
-    genres: str | None = Form(None),
-    locations: str | None = Form(None),
-    styles: str | None = Form(None),
+    genres = Form(None),
+    locations = Form(None),
+    styles = Form(None),
     interests: list[str] = Form([]),
     friends: list[str] = Form([])
 ):
