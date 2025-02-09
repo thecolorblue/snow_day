@@ -80,7 +80,7 @@ cursor.execute('''
         key TEXT NOT NULL,
         correct TEXT NOT NULL,
         answers TEXT,
-        FOREIGN KEY (story_id) REFERENCES story (id)
+        FOREIGN KEY (story_id) REFERENCES story(id) ON DELETE CASCADE
     )
 ''')
 
@@ -164,23 +164,19 @@ def append_string_randomly(data_list, string_to_append):
     return data_list
 
 
-def gen_incorrect_answers(word_list: List[str])-> List[List[str]]:
-    responses = []
-    
-    for word in word_list:
-        prompt = f"""
+def gen_incorrect_answers(word: str)-> List[str]:
+    prompt = f"""
 Take a word and return 3 incorrect spellings of that word. Make one completely wrong and two close but incorrect.
 
 Only reply with a list of three words seperated by commas.
 
 Here is the word: {word}
-        """
-        text_response = llm([HumanMessage(content=prompt)]).content
-        response = text_response.split(',')
-        list = append_string_randomly(response, word)
-        responses.append(list)
+    """
+    text_response = llm([HumanMessage(content=prompt)]).content
+    response = text_response.split(',')
+    list = append_string_randomly(response, word)
 
-    return responses
+    return list
 
 
 # Main function to generate and validate LLM responses
@@ -402,7 +398,21 @@ def generate_story():
         return
 
     story = replace_keywords_with_links(raw_text, ordered_required_words)
-    questions = [word_to_question_map[word] for word in ordered_required_words]
+    questions = []
+
+    for word in ordered_required_words:
+        original_question = word_to_question_map[word]
+
+        q = Question(
+            type=original_question.type,
+            question=original_question.question,
+            key=original_question.key,
+            correct=original_question.correct
+        )
+        q.type = random.choice(['input', 'select'])
+        if q.type == 'select':
+            q.answers = gen_incorrect_answers(q.correct)
+        questions.append(q)
 
     story_dict = save_assignment(story, questions)
 
@@ -459,9 +469,9 @@ def save_assignment(story: str, questions: List[Question]):
     # Insert questions into the questions table, linking them to the story by story_id
     for question in questions:
         cursor.execute('''
-            INSERT INTO questions (story_id, type, question, key, correct)
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (story_id, question.type, question.question, question.key, question.correct))
+            INSERT INTO questions (story_id, type, question, key, correct, answers)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (story_id, question.type, question.question, question.key, question.correct, ','.join(question.answers or [])))
     
     # Commit changes and close the connection
     conn.commit()
@@ -484,11 +494,11 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
     story_content = story_content[0]
     
     # Fetch all questions associated with the story
-    cursor.execute("SELECT type, question, key, correct FROM questions WHERE story_id = %s", (story_id,))
+    cursor.execute("SELECT type, question, key, correct, answers FROM questions WHERE story_id = %s", (story_id,))
     questions = cursor.fetchall()
-    
+
     # Convert each fetched question into a Question object (assuming you have a Question class defined)
-    question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3]) for q in questions]
+    question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
 
     cursor.close()
         
@@ -540,7 +550,7 @@ async def submit_form(request: Request, story_id: int):
                 INSERT INTO question_results (correct, answer, last_edit, score)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (f"{story_id}", form_dict[answer_key], form_dict[last_edit_key], int(form_dict[last_edit_key]) - int(form_dict['pageLoadTime']))
+                (f"{story_id}", form_dict[answer_key], form_dict[last_edit_key], int(form_dict[last_edit_key]) - int(form_dict['paLoadTime']))
             )
             questions.append({
                 'answer': form_dict[answer_key],
@@ -641,6 +651,9 @@ async def start_assignment(request: Request, id: str):
     last_session_correct = request.query_params.get('correct')
 
     story, questions = get_assignment(id)
+
+    print(story)
+    print(questions)
 
     return templates.TemplateResponse('classroom.html', {
         "request": request,

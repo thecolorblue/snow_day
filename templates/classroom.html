@@ -392,21 +392,24 @@ customElements.define('question-link', QuestionLink);
                       <input type="hidden" id="{{ loop.index }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
                       {% endif %}
           
+                      {% if q.type == 'select' %}
                       {% for a in q.answers %}
                       <label for="{{ loop.index }}-radio">
                           <div class="answer">
-                              <md-radio id="{{ loop.index }}-radio" 
-                                        name="question{{ loop.index }}_answer" 
-                                        value="{{ a }}" 
-                                        aria-label="{{ a }}" 
-                                        data-question-index="{{ loop.index }}" 
-                                        class="track-time"></md-radio>
+                              <input id="{{ loop.index }}-radio"
+                                  type="radio"
+                                  name="question{{ q.correct }}_answer" 
+                                  value="{{ a }}" 
+                                  aria-label="{{ a }}" 
+                                  data-question-index="{{ loop.index }}" 
+                                  class="select"/>
                               <span class="answer-label">{{ a }}</span>
                           </div>
                       </label>
                       <!-- Hidden input to store the last edit timestamp for this question -->
                       <input type="hidden" id="{{ loop.index }}-lastEdit" name="question{{ loop.index }}_lastEdit" />
                       {% endfor %}
+                      {% endif %}
                   </div>
               </div>
               {% endfor %}
