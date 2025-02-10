@@ -86,6 +86,8 @@ cursor.execute('''
 
 conn.commit()
 
+conn.close()
+
 # Initialize the LLM
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=1)
 
@@ -437,10 +439,13 @@ def get_student_assignments() -> List[Dict]:
     left JOIN results r ON s.id = r.story_id
 
     """
-    cursor.execute(query)
 
-    # Fetch all rows from the result set
-    rows = cursor.fetchall()
+    with psycopg2.connect(database_url) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+
+            # Fetch all rows from the result set
+            rows = cursor.fetchall()
 
     # Get column names from the cursor description
     columns = [description[0] for description in cursor.description]
@@ -458,23 +463,21 @@ def save_assignment(story: str, questions: List[Question]):
     :param story: The story content as a string.
     :param questions: A list of Question objects.
     """
-    # Connect to the SQLite database
-    cursor = conn.cursor()
-    
-    cursor.execute('INSERT INTO story (content) VALUES (%s) RETURNING id', (story,))
-    story_id = cursor.fetchone()[0]
-    
-    conn.commit()
-    
-    # Insert questions into the questions table, linking them to the story by story_id
-    for question in questions:
-        cursor.execute('''
-            INSERT INTO questions (story_id, type, question, key, correct, answers)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (story_id, question.type, question.question, question.key, question.correct, ','.join(question.answers or [])))
-    
-    # Commit changes and close the connection
-    conn.commit()
+    with psycopg2.connect(database_url) as conn:
+        with conn.cursor() as cursor:
+
+            cursor.execute('INSERT INTO story (content) VALUES (%s) RETURNING id', (story,))
+            story_id = cursor.fetchone()[0]
+
+            conn.commit()
+
+            # Insert questions into the questions table, linking them to the story by story_id
+            for question in questions:
+                cursor.execute('''
+                    INSERT INTO questions (story_id, type, question, key, correct, answers)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                ''', (story_id, question.type, question.question, question.key, question.correct, ','.join(question.answers or [])))
+            
 
     return {
         "story_id": story_id,
@@ -482,25 +485,24 @@ def save_assignment(story: str, questions: List[Question]):
 
 
 def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
-    cursor = conn.cursor()
+    with psycopg2.connect(database_url) as conn:
+        with conn.cursor() as cursor:
 
-    # Fetch the story content
-    cursor.execute("SELECT content FROM story WHERE id = %s", (story_id,))
-    story_content = cursor.fetchone()
-    
-    if story_content is None:
-        raise ValueError(f"No story found for ID: {story_id}")
-    
-    story_content = story_content[0]
-    
-    # Fetch all questions associated with the story
-    cursor.execute("SELECT type, question, key, correct, answers FROM questions WHERE story_id = %s", (story_id,))
-    questions = cursor.fetchall()
+            # Fetch the story content
+            cursor.execute("SELECT content FROM story WHERE id = %s", (story_id,))
+            story_content = cursor.fetchone()
+            
+            if story_content is None:
+                raise ValueError(f"No story found for ID: {story_id}")
+            
+            story_content = story_content[0]
+            
+            # Fetch all questions associated with the story
+            cursor.execute("SELECT type, question, key, correct, answers FROM questions WHERE story_id = %s", (story_id,))
+            questions = cursor.fetchall()
 
-    # Convert each fetched question into a Question object (assuming you have a Question class defined)
-    question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
-
-    cursor.close()
+            # Convert each fetched question into a Question object (assuming you have a Question class defined)
+            question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
         
     return story_content, question_list
 
@@ -535,109 +537,44 @@ async def submit_form(request: Request, story_id: int):
     # Create the questions array
     questions = []
 
-    # Collect the answer and lastEdit pairs for each question
-    for num in question_numbers:
-        answer_key = f'question{num}_answer'
-        last_edit_key = f'question{num}_lastEdit'
-        last_edit_time = int(form_dict[last_edit_key])
-        if last_edit_time > last_answer:
-            last_answer = last_edit_time
-        
-        if answer_key in form_dict and last_edit_key in form_dict:
 
-            cursor.execute(
-                """
-                INSERT INTO question_results (correct, answer, last_edit, score)
-                VALUES (%s, %s, %s, %s)
-                """,
-                (f"{story_id}", form_dict[answer_key], form_dict[last_edit_key], int(form_dict[last_edit_key]) - int(form_dict['paLoadTime']))
-            )
-            questions.append({
-                'answer': form_dict[answer_key],
-                'lastEdit': form_dict[last_edit_key]
-            })
+    with psycopg2.connect(database_url) as conn:
+        with conn.cursor() as cursor:
 
-    conn.commit()
+            # Collect the answer and lastEdit pairs for each question
+            for num in question_numbers:
+                answer_key = f'question{num}_answer'
+                last_edit_key = f'question{num}_lastEdit'
+                last_edit_time = int(form_dict[last_edit_key])
+                if last_edit_time > last_answer:
+                    last_answer = last_edit_time
 
-    # Print the questions array
-    print(form_dict['pageLoadTime'])
-    print(last_answer)
-    print(last_answer - int(form_dict['pageLoadTime']),story_id)
-    print(questions)
-    # Extract questions from the form data
-    # questions = []
-    # score = 0
-    # story_id = 0
-    # page_load_time = int(form_data.get("pageLoadTime", 0))
+                if answer_key in form_dict and last_edit_key in form_dict:
 
-    # for key, value in form_data.items():
-    #     if key == 'story_id':
-    #         story_id = value
-    #     if key.startswith("question") and key.endswith("_answer"):
-    #         question_index = key.split("question")[1].split("_answer")[0]
-    #         last_edit_key = f"question{question_index}_lastEdit"
-    #         last_edit = int(form_data.get(last_edit_key, 0))
+                    cursor.execute(
+                        """
+                        INSERT INTO question_results (correct, answer, last_edit, score)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (f"{story_id}", form_dict[answer_key], form_dict[last_edit_key], int(form_dict[last_edit_key]) - int(form_dict['paLoadTime']))
+                    )
+                    questions.append({
+                        'answer': form_dict[answer_key],
+                        'lastEdit': form_dict[last_edit_key]
+                    })
 
-    #         # Determine the score for the question
-
-    #         # Determine if the answer is correct
-    #         is_correct = question_index == value
-    #         if is_correct:
-    #             score += 1
-
-    #         time_diff = last_edit - page_load_time
-    #         if question_index != value:
-    #             question_score = 0
-    #         elif time_diff < 10000:
-    #             question_score = 1
-    #         elif 10000 <= time_diff < 20000:
-    #             question_score = 2
-    #         elif time_diff > 30000:
-    #             question_score = 3
-    #         else:
-    #             question_score = 0
-
-    #         question_data = {
-    #             "correct": question_index,
-    #             "answer": value,
-    #             "last_edit": last_edit,
-    #             "score": question_score
-    #         }
-
-    #         # Insert question data into the database
-    #         try:
-    #             cursor.execute(
-    #                 """
-    #                 INSERT INTO question_results (correct, answer, last_edit, score)
-    #                 VALUES (?, ?, ?, ?)
-    #                 """,
-    #                 (question_index, value, last_edit, question_score)
-    #             )
-    #         except Exception as e:
-    #             logger.error(e)
-
-    #         questions.append(question_data)
-
-    # # Insert cumulative score into the database
-    try:
-        cursor.execute(
-            """
-            INSERT INTO results (score, story_id)
-            VALUES (%s, %s)
-            """,
-            (last_answer - int(form_dict['pageLoadTime']),story_id)
-        )
-        conn.commit()
-    except Exception as e:
-        logger.error(e)
-
-    # # Prepare URL parameters
-    # params = {
-    #     "questions": len(questions),
-    #     "correct": score
-    # }
-    # print(params)
-    # url = f"/assignments/{str(id + 1)}?{urlencode(params, doseq=True)}"
+            # # Insert cumulative score into the database
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO results (score, story_id)
+                    VALUES (%s, %s)
+                    """,
+                    (last_answer - int(form_dict['pageLoadTime']),story_id)
+                )
+                conn.commit()
+            except Exception as e:
+                logger.error(e)
 
     return RedirectResponse(url='/assignments/', status_code=303)
 
@@ -651,9 +588,6 @@ async def start_assignment(request: Request, id: str):
     last_session_correct = request.query_params.get('correct')
 
     story, questions = get_assignment(id)
-
-    print(story)
-    print(questions)
 
     return templates.TemplateResponse('classroom.html', {
         "request": request,
@@ -737,8 +671,6 @@ async def create_assignment(
     generate_tts(raw_text, f"assignment-{story_dict['story_id']}.mp3")
 
     return {"message": "Story created successfully", "story_id": story_dict["story_id"]}
-
-    return RedirectResponse(url="/assignments/", status_code=303)
 
 
 @app.get("/classroom_page", response_class=HTMLResponse)
