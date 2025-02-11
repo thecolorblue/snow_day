@@ -527,7 +527,7 @@ async def submit_form(request: Request, story_id: int):
 
     # Use a regular expression to find all question numbers from keys
     for key in form_dict.keys():
-        match = re.match(r'question(\d+)_answer', key)
+        match = re.match(r'question(.+)_answer', key)
         if match:
             question_numbers.add(int(match.group(1)))
 
