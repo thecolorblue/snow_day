@@ -631,6 +631,7 @@ async def create_assignment(
     locations = Form(None),
     styles = Form(None),
     interests: list[str] = Form([]),
+    gen_ttl: bool = Form(True),
     friends: list[str] = Form([])
 ):
     # Select random questions and words
@@ -668,7 +669,8 @@ async def create_assignment(
     story_dict = save_assignment(story, questions)
 
     # Generate text-to-speech (TTS)
-    generate_tts(raw_text, f"assignment-{story_dict['story_id']}.mp3")
+    if gen_ttl:
+        generate_tts(raw_text, f"assignment-{story_dict['story_id']}.mp3")
 
     return {"message": "Story created successfully", "story_id": story_dict["story_id"]}
 
