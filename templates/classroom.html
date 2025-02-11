@@ -394,7 +394,7 @@ customElements.define('question-link', QuestionLink);
           
                       {% if q.type == 'select' %}
                       {% for a in q.answers %}
-                      <label for="{{ loop.index }}-radio">
+                      <label>
                           <div class="answer">
                               <input id="{{ loop.index }}-radio"
                                   type="radio"
