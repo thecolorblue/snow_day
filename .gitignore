@@ -1,1 +1,9 @@
 node_modules
+media
+
+story_backup*
+results.db
+.DS_Store
+.env
+
+env

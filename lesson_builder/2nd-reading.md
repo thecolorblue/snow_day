@@ -1,0 +1,1 @@
+Create a lesson plan for a 2nd grader to help them practice reading specific words. the lessons should include lists of words, in varrying difficult, that a student should be able to read by the end of the their 2nd grade. 
