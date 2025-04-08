@@ -2,6 +2,7 @@ import datetime
 import enum
 import logging
 import os
+
 from sqlalchemy import JSON, Column, DateTime, Enum, Integer, String, Text, ForeignKey, create_engine, func
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker, joinedload
 
@@ -104,7 +105,7 @@ class StorylineProgress(Base):
     duration = Column(Integer)
     score = Column(Integer)
     attempts = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     # Existing relationships
     storyline = relationship("Storyline", back_populates="progress")

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storyline Creator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        select, input {
+            width: calc(100% - 120px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #0073e6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        .random-btn {
+            margin-left: 10px;
+            background-color: #ff9800;
+        }
+        .random-btn:hover {
+            background-color: #e68900;
+        }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .nav-links a {
+            margin: 0 10px;
+            color: #0073e6;
+            text-decoration: none;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-links">
+        <a href="/storylines">Back to Storylines</a>
+    </div>
+    
+    <h1>Create New Storyline</h1>
+    <form id="storyline-form" action="/storylines" method="POST">
+        <!-- TRICK_WORDS -->
+        <label for="trick-words">Choose Trick Words:</label>
+        <select id="trick-words" name="trick_words" multiple>
+            <option value="">--Select Trick Words--</option>
+            <option>eight</option>
+            <option>large</option>
+            <option>night</option>
+            <option>answer</option>
+            <option>different</option>
+            <option>world</option>
+            <option>continent</option>
+            <option>ocean</option>
+            <option>country</option>
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelectMultiple('trick-words', ['eight', 'large', 'night', 'answer', 'different', 'world', 'continent', 'ocean', 'country'])">Random</button>
+
+        <!-- GENRES -->
+        <label for="genres">Choose a Genre:</label>
+        <select id="genres" name="genres">
+            <option value="">--Select a Genre--</option>
+            <option>adventure</option>
+            <option>super hero</option>
+            <option>mystery</option>
+            <option>comedy</option>
+            <option>science fiction</option>
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelect('genres', ['adventure', 'super hero', 'mystery', 'comedy', 'science fiction'])">Random</button>
+
+        <!-- LOCATIONS -->
+        <label for="locations">Choose a Location:</label>
+        <select id="locations" name="locations">
+            <option value="">--Select a Location--</option>
+            <option>under water</option>
+            <option>wild west</option>
+            <option>jungles of Africa</option>
+            <option>Antartica</option>
+            <option>Japanese Mountains</option>
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelect('locations', ['under water', 'wild west', 'jungles of Africa', 'Antartica', 'Japanese Mountains'])">Random</button>
+
+        <!-- STYLES -->
+        <label for="styles">Choose a Style:</label>
+        <select id="styles" name="styles">
+            <option value="">--Select a Style--</option>
+            <option>poem</option>
+            <option>comic book</option>
+            <option>Shakespeare</option>
+            <option>Harry Potter</option>
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelect('styles', ['poem', 'comic book', 'Shakespeare', 'Harry Potter'])">Random</button>
+
+        <!-- INTERESTS -->
+        <label for="interests">Choose Interests:</label>
+        <select id="interests" name="interests" multiple>
+            <option value="">--Select Interests--</option>
+            <option>basketball</option>
+            <option>acting</option>
+            <option>directing plays</option>
+            <option>American Girl dolls</option>
+            <option>skateboarding</option>
+            <option>ice skating</option>
+            <option>Mario Kart</option>
+            <option>Zelda</option>
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelectMultiple('interests', ['basketball', 'acting', 'directing plays', 'American Girl dolls', 'skateboarding', 'ice skating', 'Mario Kart', 'Zelda'])">Random</button>
+
+        <!-- FRIENDS -->
+        <label for="friends">Choose Friends:</label>
+        <select id="friends" name="friends" multiple>
+            <option value="">--Select Friends--</option>
+            <option>Paige</option>
+            <option>Maia</option>
+            <option>Zadie</option>
+            <option>Zoe</option>
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelectMultiple('friends', ['Paige', 'Maia', 'Zadie', 'Zoe'])">Random</button>
+
+        <div class="ttl-toggle">
+            <label for="gen-ttl">Enable TTL Generation:</label>
+            <input type="checkbox" id="gen-ttl" name="gen_ttl" checked>
+        </div>
+
+        <button type="submit">Create Storyline</button>
+    </form>
+
+    <script>
+        function randomSelect(selectId, options) {
+            const selectElement = document.getElementById(selectId);
+            const randomOption = options[Math.floor(Math.random() * options.length)];
+            selectElement.value = randomOption;
+        }
+
+        function randomSelectMultiple(selectId, options) {
+            const selectElement = document.getElementById(selectId);
+            const selectedOptions = [];
+            const randomCount = Math.floor(Math.random() * options.length) + 1; // Random number of selections
+            while (selectedOptions.length < randomCount) {
+                const randomOption = options[Math.floor(Math.random() * options.length)];
+                if (!selectedOptions.includes(randomOption)) {
+                    selectedOptions.push(randomOption);
+                }
+            }
+            // Clear and set the selected options
+            Array.from(selectElement.options).forEach(option => option.selected = selectedOptions.includes(option.value));
+        }
+    </script>
+</body>
+</html>

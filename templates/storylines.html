@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storylines Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/static/styles/assignments.css" rel="stylesheet" />
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h1>Storylines</h1>
+        <a href="/storylines/create" style="display: inline-block; padding: 10px 15px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 4px; margin-top: 10px;">Create New Storyline</a>
+    </div>
+    <storyline-table storylines='{{ storylines | tojson }}'></storyline-table>
+
+    <script type="module">
+        class StorylineTable extends HTMLElement {
+            constructor() {
+                super();
+                // Attach a shadow DOM to the element.
+                this.attachShadow({ mode: 'open' });
+
+                // Create a template for the component.
+                const template = document.createElement('template');
+                template.innerHTML = `
+                    <style>
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            background-color: white;
+                        }
+
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: left;
+                        }
+
+                        tbody {
+                            background-color: white;
+                        }
+
+                        th {
+                            background-color: #f4f4f4;
+                        }
+
+                        button {
+                            background-color: #007BFF;
+                            color: white;
+                            border: none;
+                            padding: 5px 10px;
+                            cursor: pointer;
+                            border-radius: 3px;
+                        }
+
+                        button:hover {
+                            background-color: #0056b3;
+                        }
+                        
+                        .status-pending {
+                            color: #ff9800;
+                            font-weight: bold;
+                        }
+                        
+                        .status-completed {
+                            color: #4caf50;
+                            font-weight: bold;
+                        }
+                        
+                        .status-failed {
+                            color: #f44336;
+                            font-weight: bold;
+                        }
+                    </style>
+                    <table part="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>Steps</th>
+                                <th>Request</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                `;
+
+                // Append the template content to the shadow DOM.
+                this.shadowRoot.appendChild(template.content.cloneNode(true));
+            }
+
+            // Observed attributes for detecting changes.
+            static get observedAttributes() {
+                return ['storylines'];
+            }
+
+            // Called when the observed attribute changes.
+            attributeChangedCallback(name, oldValue, newValue) {
+                if (name === 'storylines') {
+                    this.renderTable(JSON.parse(newValue));
+                }
+            }
+
+            renderStorylineRow({storyline_id, status, step_count, original_request}) {
+                // Parse the original request if it's a JSON string
+                let requestData = original_request;
+                try {
+                    if (original_request) {
+                        const parsedRequest = JSON.parse(original_request);
+                        requestData = JSON.stringify(parsedRequest, null, 2).substring(0, 50) + '...';
+                    } else {
+                        requestData = 'No request data';
+                    }
+                } catch (e) {
+                    requestData = original_request ? original_request.substring(0, 50) + '...' : 'No request data';
+                }
+                
+                // Create status class for styling
+                const statusClass = `status-${status.toLowerCase()}`;
+                
+                return `
+                    <td>${storyline_id}</td>
+                    <td class="${statusClass}">${status}</td>
+                    <td>${step_count}</td>
+                    <td>${requestData}</td>
+                    <td><button onclick="location.href='/storylines/${storyline_id}'">View</button></td>
+                `;
+            }
+
+            // Renders the table rows based on the storylines data.
+            renderTable(storylines) {
+                const tbody = this.shadowRoot.querySelector('tbody');
+                tbody.innerHTML = '';
+
+                storylines.forEach(storyline => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = this.renderStorylineRow(storyline);
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Define the custom element.
+        customElements.define('storyline-table', StorylineTable);
+    </script>
+</body>
+</html>

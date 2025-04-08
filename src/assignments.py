@@ -29,7 +29,6 @@ logger.setLevel(logging.DEBUG)
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-
 def get_student_assignments() -> List[Dict]:
     """
         return all stories without results
@@ -59,6 +58,27 @@ def get_student_assignments() -> List[Dict]:
     assignments = [dict(zip(columns, row)) for row in rows]
 
     return assignments
+
+
+def get_all_storylines() -> List[Dict]:
+    """
+    Return all storylines from the database with their status
+    """
+    with db_session() as session:
+        storylines = session.query(Storyline).all()
+        
+        # Convert Storyline objects to dictionaries
+        storyline_list = []
+        for storyline in storylines:
+            storyline_dict = {
+                "storyline_id": storyline.storyline_id,
+                "original_request": storyline.original_request,
+                "status": storyline.status,
+                "step_count": len(storyline.steps) if storyline.steps else 0
+            }
+            storyline_list.append(storyline_dict)
+            
+    return storyline_list
 
 
 def save_assignment(story: str, questions: List[Question]):
@@ -190,12 +210,10 @@ def setup_routes(app: FastAPI):
             "last_session_questions": last_session_questions,
             "last_session_correct": last_session_correct
         })
-
-
     @app.get("/assignments", response_class=HTMLResponse)
     async def assignment_dashboard(request: Request):
         """
-            View the Assignement Dashboard
+            View the Assignment Dashboard
         """
 
         assignments = get_student_assignments()
@@ -204,10 +222,73 @@ def setup_routes(app: FastAPI):
             "request": request,
             "assignments": assignments
         })
+    
+    @app.get("/storylines", response_class=HTMLResponse)
+    async def storyline_dashboard(request: Request):
+        """
+            View the Storyline Dashboard
+        """
+
+        storylines = get_all_storylines()
+
+        return templates.TemplateResponse("storylines.html", {
+            "request": request,
+            "storylines": storylines
+        })
+
+    @app.post("/storylines")
+    async def create_storyline(
+        trick_words: list[str] = Form([]),
+        genres = Form(None),
+        locations = Form(None),
+        styles = Form(None),
+        interests: list[str] = Form([]),
+        gen_ttl: bool = Form(True),
+        friends: list[str] = Form([])
+    ):
+        """
+            Create a new Storyline
+        """
+        # Select random questions and words
+        question_list = trick_words or random.sample(QUESTIONS, 6)
+        
+        # Create JSON data package
+        storyline_data = {
+            "question_list": question_list,
+            "genre": genres or random.choice(GENRES),
+            "location": locations or random.choice(LOCATIONS),
+            "style": styles or random.choice(STYLES),
+            "selected_interests": interests if interests else random.sample(INTERESTS, 2),
+            "friend": random.choice(friends or FRIENDS)
+        }
+        # Create new Storyline record
+        db = SessionLocal()
+        try:
+            storyline = Storyline(
+                original_request=json.dumps(storyline_data),
+                status="pending"
+            )
+            db.add(storyline)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        
+        return RedirectResponse(url="/storylines/", status_code=303)
+
+    @app.get("/storylines/create", response_class=HTMLResponse)
+    async def storyline_form(request: Request):
+        """
+            Create Storylines Form
+        """
+        return templates.TemplateResponse("create_storyline.html", {
+            "request": request
+        })
+
 
 
     @app.get("/assignment/create", response_class=HTMLResponse)
-    async def assignment_dashboard(request: Request):
+    async def assignment_form(request: Request):
         """
             Create Assignments
         """
@@ -239,7 +320,6 @@ def setup_routes(app: FastAPI):
             "selected_interests": interests if interests else random.sample(INTERESTS, 2),
             "friend": random.choice(friends or FRIENDS)
         }
-        
         # Create new Storyline record
         db = SessionLocal()
         try:
