@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Form, Request
+import json
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -8,7 +9,7 @@ import markdown
 import logging
 from typing import List, Dict, Tuple
 
-from .orm import db_session
+from .orm import SessionLocal, Storyline, db_session
 from .utils import (
     get_validated_response,
     replace_keywords_with_links,
@@ -214,7 +215,7 @@ def setup_routes(app: FastAPI):
         return templates.TemplateResponse("create_assignment.html", {
             "request": request
         })
-                                        
+
 
     @app.post("/assignments")
     async def create_assignment(
@@ -228,40 +229,28 @@ def setup_routes(app: FastAPI):
     ):
         # Select random questions and words
         question_list = trick_words or random.sample(QUESTIONS, 6)
-        word_to_question_map = {q.correct: q for q in question_list}
-        required_words = [item.correct for item in question_list]
-
-        genre = genres or random.choice(GENRES)
-        location = locations or random.choice(LOCATIONS)
-        style = styles or random.choice(STYLES)
-        selected_interests = interests if interests else random.sample(INTERESTS, 2)
-        friend = random.choice(friends or FRIENDS)
-
-        # Build user prompt with all interests dynamically
-        interests_text = ', '.join(selected_interests)
-
-        user_prompt = f"""
-        Write an {genre} story located in {location} in the style of {style} for Maeve who is 8 years old. It should be very silly. Over the top silly.
-        She likes {interests_text}, and her best friend is {friend}.
-
-        Make the story about 2 paragraphs long.
-
-        Include these words in the story: {', '.join(required_words)}
-        """
-
-        # Generate and validate the story
-        ordered_required_words, raw_text = get_validated_response(user_prompt, required_words)
-
-        if ordered_required_words is None:
-            return {"error": "Failed to generate a story with valid words."}
-
-        # Replace keywords and save the story
-        story = replace_keywords_with_links(raw_text, ordered_required_words)
-        questions = [word_to_question_map[word] for word in ordered_required_words]
-        story_dict = save_assignment(story, questions)
-
-        # Generate text-to-speech (TTS)
-        if gen_ttl:
-            generate_tts(raw_text, f"assignment-{story_dict['story_id']}.mp3")
-
+        
+        # Create JSON data package
+        assignment_data = {
+            "question_list": question_list,
+            "genre": genres or random.choice(GENRES),
+            "location": locations or random.choice(LOCATIONS),
+            "style": styles or random.choice(STYLES),
+            "selected_interests": interests if interests else random.sample(INTERESTS, 2),
+            "friend": random.choice(friends or FRIENDS)
+        }
+        
+        # Create new Storyline record
+        db = SessionLocal()
+        try:
+            storyline = Storyline(
+                original_request=json.dumps(assignment_data),
+                status="pending"
+            )
+            db.add(storyline)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+        
         return RedirectResponse(url="/assignments/", status_code=303)

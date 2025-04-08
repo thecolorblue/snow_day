@@ -1,0 +1,419 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 16.4
+-- Dumped by pg_dump version 17.4
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: ubnjeep6ndif35
+--
+
+CREATE SCHEMA public;
+
+
+ALTER SCHEMA public OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: ubnjeep6ndif35
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: question_results; Type: TABLE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE TABLE public.question_results (
+    id integer NOT NULL,
+    correct text,
+    answer text,
+    last_edit integer,
+    score integer
+);
+
+
+ALTER TABLE public.question_results OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: question_results_id_seq; Type: SEQUENCE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE SEQUENCE public.question_results_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.question_results_id_seq OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: question_results_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER SEQUENCE public.question_results_id_seq OWNED BY public.question_results.id;
+
+
+--
+-- Name: questions; Type: TABLE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE TABLE public.questions (
+    id integer NOT NULL,
+    story_id integer NOT NULL,
+    type text NOT NULL,
+    question text NOT NULL,
+    key text NOT NULL,
+    correct text NOT NULL,
+    answers text
+);
+
+
+ALTER TABLE public.questions OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: questions_id_seq; Type: SEQUENCE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE SEQUENCE public.questions_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.questions_id_seq OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: questions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER SEQUENCE public.questions_id_seq OWNED BY public.questions.id;
+
+
+--
+-- Name: results; Type: TABLE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE TABLE public.results (
+    id integer NOT NULL,
+    story_id integer NOT NULL,
+    score integer
+);
+
+
+ALTER TABLE public.results OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: results_id_seq; Type: SEQUENCE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE SEQUENCE public.results_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.results_id_seq OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: results_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER SEQUENCE public.results_id_seq OWNED BY public.results.id;
+
+
+--
+-- Name: story; Type: TABLE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE TABLE public.story (
+    id integer NOT NULL,
+    content text NOT NULL
+);
+
+
+ALTER TABLE public.story OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: story_id_seq; Type: SEQUENCE; Schema: public; Owner: ubnjeep6ndif35
+--
+
+CREATE SEQUENCE public.story_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.story_id_seq OWNER TO ubnjeep6ndif35;
+
+--
+-- Name: story_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER SEQUENCE public.story_id_seq OWNED BY public.story.id;
+
+
+--
+-- Name: question_results id; Type: DEFAULT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.question_results ALTER COLUMN id SET DEFAULT nextval('public.question_results_id_seq'::regclass);
+
+
+--
+-- Name: questions id; Type: DEFAULT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.questions ALTER COLUMN id SET DEFAULT nextval('public.questions_id_seq'::regclass);
+
+
+--
+-- Name: results id; Type: DEFAULT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.results ALTER COLUMN id SET DEFAULT nextval('public.results_id_seq'::regclass);
+
+
+--
+-- Name: story id; Type: DEFAULT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.story ALTER COLUMN id SET DEFAULT nextval('public.story_id_seq'::regclass);
+
+
+--
+-- Data for Name: question_results; Type: TABLE DATA; Schema: public; Owner: ubnjeep6ndif35
+--
+
+COPY public.question_results (id, correct, answer, last_edit, score) FROM stdin;
+\.
+
+
+--
+-- Data for Name: questions; Type: TABLE DATA; Schema: public; Owner: ubnjeep6ndif35
+--
+
+COPY public.questions (id, story_id, type, question, key, correct, answers) FROM stdin;
+3	5	input	spell: <play-word>night</play-word>	spelling:night	night	\N
+4	5	input	spell: <play-word>large</play-word>	spelling:large	large	\N
+5	5	input	spell: <play-word>country</play-word>	spelling:country	country	\N
+6	5	input	spell: <play-word>continent</play-word>	spelling:continent	continent	\N
+7	5	input	spell: <play-word>world</play-word>	spelling:world	world	\N
+8	5	input	spell: <play-word>eight</play-word>	spelling:eight	eight	\N
+9	6	input	spell: <play-word>different</play-word>	spelling:different	different	\N
+10	6	select	spell: <play-word>continent</play-word>	spelling:continent	continent	\N
+11	6	input	spell: <play-word>night</play-word>	spelling:night	night	\N
+12	6	select	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	\N
+13	6	input	spell: <play-word>answer</play-word>	spelling:answer	answer	\N
+14	7	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	\N
+15	7	input	spell: <play-word>night</play-word>	spelling:night	night	\N
+16	7	select	spell: <play-word>answer</play-word>	spelling:answer	answer	\N
+17	7	input	spell: <play-word>world</play-word>	spelling:world	world	\N
+18	8	select	spell: <play-word>night</play-word>	spelling:night	night	\N
+19	8	input	spell: <play-word>different</play-word>	spelling:different	different	\N
+20	8	select	spell: <play-word>world</play-word>	spelling:world	world	\N
+21	8	select	spell: <play-word>continent</play-word>	spelling:continent	continent	\N
+22	8	input	spell: <play-word>large</play-word>	spelling:large	large	\N
+23	8	input	spell: <play-word>country</play-word>	spelling:country	country	\N
+24	9	input	spell: <play-word>night</play-word>	spelling:night	night	\N
+25	9	input	spell: <play-word>different</play-word>	spelling:different	different	\N
+26	9	input	spell: <play-word>answer</play-word>	spelling:answer	answer	\N
+27	9	input	spell: <play-word>continent</play-word>	spelling:continent	continent	\N
+28	10	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	\N
+29	10	input	spell: <play-word>night</play-word>	spelling:night	night	\N
+30	10	select	spell: <play-word>large</play-word>	spelling:large	large	\N
+31	10	input	spell: <play-word>answer</play-word>	spelling:answer	answer	\N
+32	10	select	spell: <play-word>eight</play-word>	spelling:eight	eight	\N
+33	10	select	spell: <play-word>country</play-word>	spelling:country	country	\N
+34	13	select	spell: <play-word>night</play-word>	spelling:night	night	nighte, nyght, nite,night
+35	13	select	spell: <play-word>answer</play-word>	spelling:answer	answer	anser,answer, awnser, asnwer
+36	13	select	spell: <play-word>different</play-word>	spelling:different	different	diferent, diffrent,different, diffarent
+37	13	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+67	34	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+68	34	input	spell: <play-word>world</play-word>	spelling:world	world	
+69	34	input	spell: <play-word>different</play-word>	spelling:different	different	
+70	34	input	spell: <play-word>large</play-word>	spelling:large	large	
+71	34	input	spell: <play-word>answer</play-word>	spelling:answer	answer	
+72	35	input	spell: <play-word>night</play-word>	spelling:night	night	
+73	35	input	spell: <play-word>different</play-word>	spelling:different	different	
+74	35	input	spell: <play-word>country</play-word>	spelling:country	country	
+75	35	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+76	35	input	spell: <play-word>answer</play-word>	spelling:answer	answer	
+77	35	input	spell: <play-word>world</play-word>	spelling:world	world	
+78	36	input	spell: <play-word>night</play-word>	spelling:night	night	
+79	36	input	spell: <play-word>large</play-word>	spelling:large	large	
+80	36	input	spell: <play-word>different</play-word>	spelling:different	different	
+81	36	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	
+82	36	input	spell: <play-word>eight</play-word>	spelling:eight	eight	
+83	37	input	spell: <play-word>night</play-word>	spelling:night	night	
+84	37	input	spell: <play-word>world</play-word>	spelling:world	world	
+85	37	input	spell: <play-word>different</play-word>	spelling:different	different	
+86	37	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	
+87	37	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+88	37	input	spell: <play-word>large</play-word>	spelling:large	large	
+89	38	input	spell: <play-word>large</play-word>	spelling:large	large	
+90	38	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	
+91	38	input	spell: <play-word>eight</play-word>	spelling:eight	eight	
+92	38	input	spell: <play-word>different</play-word>	spelling:different	different	
+93	38	input	spell: <play-word>answer</play-word>	spelling:answer	answer	
+94	38	input	spell: <play-word>country</play-word>	spelling:country	country	
+95	39	input	spell: <play-word>night</play-word>	spelling:night	night	
+96	39	input	spell: <play-word>world</play-word>	spelling:world	world	
+97	39	input	spell: <play-word>country</play-word>	spelling:country	country	
+98	39	input	spell: <play-word>answer</play-word>	spelling:answer	answer	
+99	39	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+100	40	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+101	40	input	spell: <play-word>world</play-word>	spelling:world	world	
+102	40	input	spell: <play-word>answer</play-word>	spelling:answer	answer	
+103	40	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	
+104	40	input	spell: <play-word>night</play-word>	spelling:night	night	
+133	67	input	spell: <play-word>large</play-word>	spelling:large	large	
+134	67	input	spell: <play-word>continent</play-word>	spelling:continent	continent	
+135	67	input	spell: <play-word>ocean</play-word>	spelling:ocean	ocean	
+136	67	input	spell: <play-word>eight</play-word>	spelling:eight	eight	
+137	67	input	spell: <play-word>different</play-word>	spelling:different	different	
+138	67	input	spell: <play-word>country</play-word>	spelling:country	country	
+\.
+
+
+--
+-- Data for Name: results; Type: TABLE DATA; Schema: public; Owner: ubnjeep6ndif35
+--
+
+COPY public.results (id, story_id, score) FROM stdin;
+\.
+
+
+--
+-- Data for Name: story; Type: TABLE DATA; Schema: public; Owner: ubnjeep6ndif35
+--
+
+COPY public.story (id, content) FROM stdin;
+5	**Title: Maeve and Paige's Wild West Basketball Showdown**\n\nOne starry <play-word>night</play-word> in the <play-word>large</play-word>, wacky <play-word>country</play-word> of Wild Westonia, Maeve and her best friend Paige decided to put on a hilarious basketball show. They wore cowboy hats that were three sizes too big and boots so shiny that they blinded the cows in the audience! The entire <play-word>continent</play-word> had heard about their spectacular performance, but little did they know, Maeve’s basketballs were actually made of marshmallows, bouncing high into the air like popcorn at a surprise party! As they dribbled and shot, the basketballs flew around like crazy, landing in the hats of surprised cowboys who burst into silly dance moves, while a flock of dancing chickens clucked along to the beat!\n\nAs the crowd roared with laughter, Maeve had an idea — why not act out a dramatic scene while they played? So, she donned a cape made of spaghetti noodles and declared, "I am the greatest cowboy actress in the <play-word>world</play-word>!" Meanwhile, Paige, wearing a watermelon for a helmet, pretended to dodge flying basketballs while performing a funny jig. It was a showdown for the ages as they scored exactly <play-word>eight</play-word> points, but none of them were scored on the hoop — they landed right in the ceiling fan, making it spin and shower the audience with jiggly jellybeans! The <play-word>night</play-word> ended with a giant jellybean slip-and-slide, and Maeve and Paige were crowned the queens of silliness in all of Wild Westonia. Hooray!
+6	In the Japanese mountains, under the moonlight’s delight,  \nLived Maeve and Zadie, with giggles so bright.  \nThey built a huge ice rink, on a big snowy slope,  \nThen twirled like two penguins, full of wild hope!  \n“Let’s skate like the wind!” Maeve shouted with glee,  \nAnd Zadie replied, “Wait, are we on a <play-word>different</play-word> <play-word>continent</play-word>, or just a country?”  \nWith a spin and a leap, they twirled in the <play-word>night</play-word>,  \nThen took off their skates, and began a grand fight!  \n\nThey directed a play, with stuffed bears on the stage,  \nWhere the <play-word>ocean</play-word> danced under a jellyfish's rage!  \n“Who can <play-word>answer</play-word> this question?” Zadie suddenly grinned,  \n“If bears wore ice skates, would they fall or just spin?”  \nThey laughed and fell over, like two goofy clowns,  \nAnd rolled down the mountain, in colorful gowns!  \nSo if you find Maeve and Zadie laughing away,  \nRemember their ice show is just silliness play!
+7	In the depths of the <play-word>ocean</play-word>, where fish wear crowns and crabs dance with glee, lived young Maeve, an eight-year-old mermaid of great renown. One starry <play-word>night</play-word>, as the sea turtles played Mario Kart upon the waves, she came upon a curious sight: a basketball that floated like a jellyfish, bounteous with mystery! “What dost thou hold, oh sphere of orange delight?” Maeve exclaimed. “An <play-word>answer</play-word> to a riddle, perchance? Is it the key to a splashing game to be!” But lo, the ball replied in bubbles, “Nay, I am but a door to the oddest <play-word>world</play-word> in all the country's depth!”\n\nWith her best friend Paige, a dolphin with a penchant for slapstick, they took a mighty leap! Deep they plunged ‘midst corals that sang and seahorses that danced, seeking the shadowy figure known as “Sir Wobblefin,” a fish with a honking nose who claimed to hold the grand prize! They swam through fields of glittering seaweed, dodging whales who juggled sea cucumbers. At last, in a flurry of giggles, they found him—Sir Wobblefin, too busy dunking fishy hoops to notice their approach! “Aha!” cried Maeve, “We seek the <play-word>answer</play-word> to our quest!” And so, with laughter and a splash, they turned this mystery silly, for the real treasure was friendship, and a game of underwater hoops!
+8	**Maeve and Zadie's Underwater Adventure!**\n\nOne bubbly <play-word>night</play-word>, Maeve and her best friend Zadie discovered a *<play-word>different</play-word>* <play-word>world</play-word> under the sea when they dove into a giant clam. To their absolute amazement, they found an *enormous* underwater castle made of jellybeans on the ocean floor! It sparkled like a rainbow, and inside, they met a silly octopus named Mr. Wobblepants, who wore a top hat and danced the cha-cha while juggling clams! He proclaimed, “Welcome to the *<play-word>continent</play-word>* of Sillyshell! Here, American Girl dolls can come to life, and mine just made a pie that landed on my head!” Maeve couldn’t stop giggling as her American Girl doll, Samantha, challenged Mr. Wobblepants to a jellybean-eating contest, while Zadie’s doll, Kit, tried to have a serious conversation with a sea cucumber wearing sunglasses.\n\nAs they swam around the castle, they encountered a <play-word>large</play-word> school of talking fish who sang sea shanties about pizza and flying cupcakes! The fish invited Maeve and Zadie to the *<play-word>country</play-word>* of Giggleville, where every <play-word>night</play-word> was a bubble party filled with glow-in-the-dark seaweed confetti. “This is *so* silly!” screamed Maeve as she twirled around, arm-in-arm with Zadie and their dancing dolls. Suddenly, a cheeky crab named Captain Snappy challenged them to a race to the coral reef, shouting, “First one there gets to wear the Golden Sardine crown!” With ice cream waves crashing everywhere, Maeve and Zadie knew they were in for the *most ridiculous* <play-word>night</play-word> of their lives underwater—one they’d never forget!
+9	In yonder jungle, where the trees do dance and prance, fair Maeve, the dauntless maiden, did embark upon an adventure bright! With her trusty friend Zoe, and two fine American Girl dolls, the brave duo set forth beneath the twinkling stars of the <play-word>night</play-word>. "Hark! What creatures dwell in this, the wildest of worlds?" quoth Maeve with a giggle, as they spied a giraffe in a cape, who had a penchant for doing the cha-cha. A leopard with polka dot trousers did join the revelry, whilst a monkey named Chester juggled bananas in a most peculiarly skilled manner. They all partook in a grand dance, a festival to celebrate the eighth day of the month, shouting “Hip hip hooray!” as the creatures of <play-word>different</play-word> colors and clashing patterns twirled 'round.\n\n“Fear not, dear friend, we shall find the <play-word>answer</play-word> to our riddle!” proclaimed Zoe, her hair adorned with wildflowers that hummed a tune. A wise old elephant named Sir Fluffington, with ears like sails and a trunk full of secrets, proclaimed, “To conquer this <play-word>continent</play-word> of whimsy, you must speak to the mighty tree of giggles that laughs with the wind!” Thus, they strode forth, hand in hand, through vines and giggling flowers, until they reached the grand arboreal sage. They asked, “Oh great tree, what dost thou behold? What wonders lie beyond this jungle bold?” With a rustle and a chuckle, the tree answered, “Adventure waits in every nook, but silliness is the greatest hook!" And so, with hearts light as feathers, Maeve and Zoe danced away into the <play-word>night</play-word>, their laughter echoing through the jungle’s delight!
+10	In the mystical depths of the <play-word>ocean</play-word>, where the fish wore top hats and sea turtles played basketball with giant marshmallows, Maeve and her best friend Maia found themselves invited to the annual Underwater Olympics! It was <play-word>night</play-word>, and the moonlight shimmered down on the coral courts as they prepared to compete with their American Girl dolls, who were sporting sparkly swimsuits and could magically shoot hoops. The event promised to be four times more stupendous than last year’s contest where the dolphins accidentally performed a synchronized swimming routine with the crabs, resulting in a <play-word>large</play-word> whirlpool that nearly sucked up all the jellyfish sandwiches! \n\nAs the whistle blew, they dribbled jellybean balls down the court, but their excitement was interrupted when a sleepy octopus named Ollie popped up, holding a mysterious seaweed scroll. “I have the <play-word>answer</play-word> to the most important question of the <play-word>ocean</play-word>!” he exclaimed, his <play-word>eight</play-word> arms waving wildly. “What <play-word>country</play-word> is best for jellyfish cuisine?” Maeve gave a giggle and shouted, “Underwater Utopia, where marshmallows dunk in the sea!” The crowd of fish cheered, and suddenly the thrill of the game turned into a jellybean fiesta, leaving all the sea creatures wobbling and bouncing in a splendid, silly underwater dance! 
+11	On a <play-word>night</play-word> most strange in the icy land, where penguins pranced and polar bears danced, there dwelt two friends, Maeve and Maia, upon the <play-word>continent</play-word> of Antarctica, that jolly land where no ice skater was ever grander. One day, they pondered with great delight, "What manner of silliness can we conjure this <play-word>night</play-word>?" In this frosty <play-word>country</play-word>, they did find a <play-word>large</play-word>, lavish ball, where penguins wore top hats and polar bears had a grand ball! "Oh, prithee," said Maeve, "let us ask a question so bold, what is the <play-word>answer</play-word> to why the snowflakes are so cold?" Maia giggled and replied, "They must be on a secret mission to tickle the noses of every <play-word>different</play-word> fish in the sea!"\n\nAnd lo, within this frosty ball, their American Girl dolls, with frocks so bright, were granted life, and took to flight! They sang songs of silliness, spun like tops, while dancing on icebergs, hopping over frozen crops. The penguins formed a choir, their voices so grand, while Maeve and Maia, like queens, made silly commands. "Do the chicken dance!" cried Maeve with glee, and the polar bears flapped their arms to the beat of a jubilee! With laughter and joy, they created a scene, a tale of mischief, where nothing was mean. So remember, dear young ones, should you ever feel low, just dance with your dolls in the snow and let silliness flow!
+12	Once upon a wacky <play-word>night</play-word> in the Wild West, where the tumbleweeds danced the cha-cha and cacti wore party hats, Maeve and her best friend Zoe discovered something truly magical: a skateboard equipped with wheels made of jellybeans! The girls zoomed through the dusty streets of Plumbob City, where cowboys dared each other to race on giant turtles while their horses nibbled on cotton candy. Suddenly, they found themselves in a race against a giant bearded dragon who claimed to be the fastest creature on the <play-word>continent</play-word>. With a sprinkle of Maeve's giggles and Zoe's wild skateboard tricks, they whipped around corners like Mario Kart champions, making jellybean explosions that filled the air with colors brighter than an <play-word>ocean</play-word>!\n\nAs the sun set behind the jagged mountains, casting a golden glow on the peculiar countryside, they zipped towards the finish line, which was guarded by a mystical cactus that performed magic tricks! But instead of handing out prizes, he accidentally turned the dragon into a squeaky rubber chicken with a cowboy hat! The whole <play-word>world</play-word> erupted in laughter, especially as the dragon squeaked in surprise. Maeve and Zoe threw their arms up in victory, their skateboard flying high in the air like it was riding a rainbow. As they celebrated under the vast <play-word>night</play-word> sky, they knew they had launched an adventure full of silliness, making this the best <play-word>night</play-word> of their eight-year-old lives!
+13	Once upon a time in the jungles of Africa, where the trees were older than time and a cheeky monkey named Mr. Wigglebutt wore a tiny top hat, there lived an extraordinary eight-year-old girl named Maeve. Maeve had a secret: she was a superhero who could turn anything silly into a magnificent performance! One starry <play-word>night</play-word>, her best friend Zadie—who had a magical pencil that could draw anything—joined her in a wild quest to find the best <play-word>answer</play-word> to an age-old riddle: “What’s <play-word>different</play-word> about a chicken crossed the ocean?” With a burst of giggles, they decided the <play-word>answer</play-word> was: "Because it wanted to race Mario Kart with almost every creature on the <play-word>continent</play-word>!"\n\nAs Maeve flew through the jungle on the back of a giant flamingo named Fred, Zadie drew a rainbow racetrack in the sky, and they discovered the most bizarre racers: singing hippos, dancing crocodiles, and a turtle who only wore sunglasses! With each lap around the track, the animals burst into comedy routines that made Maeve and Zadie roar with laughter. They all agreed to crown the winner: a silly chicken who clucked its way to the finish line while wearing sparkly roller skates! And as the moonlight shimmered like sparkling lemonade, Maeve and Zadie knew that with their imaginations, they could turn any jungle into a festival of fun—the real magic isn’t just superpowers; it’s creating joy with friends!
+34	**Title: Skating Through the Antarctic Adventure!**\n\nOne sunny day, Maeve and her best friend Zadie found a magical skateboard under a rainbow-colored ice cube in Antarctica, the coldest <play-word>continent</play-word> in the <play-word>world</play-word>! This wasn’t just any skateboard—it had rocket boosters and could fly, making it the coolest thing ever! As they zoomed across the icy landscape, they spotted a group of penguins holding a Mario Kart tournament, complete with tiny helmets and rubber ducky karts! “We need to join!” Zadie shouted. “But the penguins are from a <play-word>different</play-word> country!” Maeve giggled as she pulled out a cardboard sign that said “Penguin Racing Team” with a heart drawn in crayon. “If they can skateboard, we can definitely race!”\n\nWith a whoosh, the flying skateboard took off, and soon they were belly-flopping with penguins, rivaling their talent with wobbly wheelies! As they zipped past a <play-word>large</play-word> igloo that looked like a giant marshmallow, they discovered the penguins needed an <play-word>answer</play-word> to the riddle of the Iceberg King: "What do you call a penguin in the desert?" Everyone scratched their heads until Zadie shouted, "Lost!" The icy sky erupted in laughter, and just like that, the Iceberg King awarded Maeve and Zadie with sparkling snow crowns! They skated off into the sunset, promising to return to this frosty paradise for more silly adventures that made their hearts race faster than a runaway penguin on a skateboard!
+35	**Title: Maeve and Zoe's Wacky Antarctic Adventure!**\n\nOne frosty <play-word>night</play-word> in Antarctica, where penguins wore sunglasses and snowflakes danced like ballerinas, Maeve and her best friend Zoe unearthed a glowing, rainbow skateboard buried in the icy snow! “This isn’t an ordinary skateboard!” Maeve exclaimed as they took turns zooming down hills while racing against penguins on go-karts, each penguin sported a tiny Mario hat! “We’ve traveled to a <play-word>different</play-word> <play-word>country</play-word> on a <play-word>different</play-word> <play-word>continent</play-word> where penguins are the ultimate race car drivers!” Zoe shouted, doing somersaults in mid-air. They laughed so hard they almost forgot to ask, “What’s the <play-word>answer</play-word> to why everyone here is so silly?”\n\nAs the sun began to set, the playful duo decided to challenge the penguins to a skateboarding contest under the twinkling stars. The penguins lined up, their fluffy rears bouncing around with excitement. Maeve and Zoe skated up to the starting line, wearing ice cream helmets that dripped with sprinkles. “3, 2, 1… GO!” they shouted, zooming past snowmen that waved pom-pom hands and icebergs that cheered as if they were the audience of the silliest show in the <play-word>world</play-word>! After a whirlwind of laughter, flips, and a giant snowball launch, Maeve and Zoe declared everyone winners, turning the icy land into a spectacular snow party. Nothing could be more fun than this silly Antarctic adventure!
+36	**Title: Maeve and Zoe's Totally Tubular Antarctic Adventure!**\n\nOne starry <play-word>night</play-word>, while dreaming of skateboarding on the fluffy, marshmallow-like snow of Antarctica, Maeve and her best friend Zoe suddenly heard a loud *THUD!* outside. They peeked out and saw a <play-word>large</play-word> penguin riding a skateboard! It wasn’t just any penguin—it was Professor Waddles, the world’s greatest scientist, who accidentally mixed up his penguin food with skateboarding fuel, causing him to zoom around like a rocket! "Help me, you’re my only hope! I need to collect all the special snowflakes that make Mario Kart tracks slippery!" he said, wobbling on his board like a jellybean. With a shout of excitement, Maeve and Zoe jumped onto their own skateboards and zoomed off through the dazzling, shimmering snow!\n\nAs they raced through the <play-word>different</play-word> icy landscapes, they dodged snowball-throwing seals wearing sunglasses and played bumper cars with friendly walruses on surfboards! Suddenly, they discovered a gigantic ice slide that looked like it was made of rainbow candy! "Let’s go down together!" shouted Maeve, her eyes sparkling with adventure. With an epic push, they slid down the ice at lightning speed, giggling the whole way. "This is way better than any Mario Kart race!" Zoe laughed as they landed in a soft pile of whipped cream snow at the bottom. As the stars twinkled above and the <play-word>ocean</play-word> sparkled nearby, the two friends cheered and high-fived, promising to tell everyone about their crazy Antarctic adventure for all of eternity—even if it was just for the next <play-word>eight</play-word> days!
+37	**Maeve and Zoe’s Antarctic Adventure!**\n\nOne chilly <play-word>night</play-word> in Antarctica, Maeve and Zoe decided to skateboard on the largest icebergs in the whole wide <play-word>world</play-word>! As they zoomed down a ice ramp, they accidentally discovered a hidden portal that transported them to a <play-word>different</play-word> dimension where penguins wore sunglasses and played Mario Kart on ice! "Vroom-vroom!" said Maeve, giggling as they raced against their fluffy opponents. The penguins were so good that they turned the <play-word>ocean</play-word> into a rainbow sea of jellybeans, and every time someone fell off the track, they landed onto fluffy marshmallows!\n\nThe girls danced on their skateboards, creating incredible tricks and laughter echoed through the frozen <play-word>continent</play-word>, attracting a group of dancing polar bears in tutus! Suddenly, one of the bears threw a giant snowball that turned into a slide, leading to a secret disco party under the aurora lights! Everyone, from the sea lions to the snowmen, joined in with silly moves as they celebrated their new friendship. Maeve and Zoe skated, danced, and giggled all <play-word>night</play-word> long, proving that even in the most unexpected places, adventures can be <play-word>large</play-word>, loud, and oh-so-silly!
+38	**Title: Maeve and Zadie’s Antarctic Adventure!**\n\nOne frosty morning, Maeve and her best friend Zadie woke up to find themselves in a **<play-word>large</play-word>**, snowy land that looked nothing like their hometown! “Zadie, we’re in Antarctica!” squealed Maeve, clutching her magical skateboard that sparkled like glitter. They spotted a penguin wearing sunglasses and a tiny crown, zooming around on a miniature Mario Kart. “What’s your name, Your Highness?” Maeve asked. The penguin replied, “I’m King Waddles, and I need your help to find the secret **<play-word>ocean</play-word>** made of chocolate before the big avalanche of giant marshmallows arrives in exactly **<play-word>eight</play-word>** minutes!” \n\nWithout wasting any time, Maeve and Zadie hopped onto their skateboards and followed King Waddles through the snow in a race against time! They zoomed past snowmen having snowball fights, played jump rope with seals, and even danced with a group of disco-loving walruses! Each twist and turn of the snowy road led to something **<play-word>different</play-word>** and sillier than the last! When they finally found the chocolate <play-word>ocean</play-word>, they had to <play-word>answer</play-word> a riddle posed by a wise old whale who wiggled like he was dancing. “What has keys but can’t open locks?” he sang. “A piano!” Zadie shouted. With a splash and a giggle, they dove into the sweet waves, their laughter echoing across the icy **<play-word>country</play-word>**. It was the silliest adventure ever, and they never wanted to leave!
+39	**Title: Maeve and Zoe's Antarctic Adventure!**\n\nOn a wild, wintery <play-word>night</play-word> in Antarctica, Maeve and her best friend Zoe decided that skateboarding on the snow was the coolest idea ever! As they zoomed down a hill on their neon-pink skateboards, they accidentally stumbled upon a hidden portal that whirled them into a wacky <play-word>world</play-word> filled with penguin superheroes and giant ice cream cones! The <play-word>country</play-word> was unlike any place they had ever been: icebergs turned into slidey racetracks for a Mario Kart tournament where they raced against talking seals! Every time they crossed the finish line, they were blasted with confetti made of snowflakes and marshmallows. \n\nAs they surfed back into the snow, Maeve shouted, "If I can just do an eight-foot jump, I bet I can find the <play-word>answer</play-word> to the ultimate question: What’s cooler than skateboarding in Antarctica?" Zoe laughed while trying to dodge a snowball thrown by a particularly sneaky penguin. Suddenly, a giant ice monster appeared, challenging them to an epic skateboard showdown. With a mix of giggles and trick shots, Maeve and Zoe skated their way to victory, proving that even on the coldest <play-word>continent</play-word>, friendship and silliness are the hottest things there!
+40	**Title: The Lost Rubber Chicken of Zany Jungle!**\n\nOne sunny day in the lush jungles of Africa, Maeve and her best friend Zadie were on an epic mission to find the legendary Lost Rubber Chicken, said to be hidden somewhere on the largest <play-word>continent</play-word> in the <play-word>world</play-word>! With Maeve directing their grand adventure like a thrilling play, and Zadie wearing her sparkly ice skates (because who would want to get muddy?), they ventured deep into the jungle. Suddenly, they spotted a parrot wearing a tiny pirate hat squawking, "Arrr! The <play-word>answer</play-word> lies in the <play-word>ocean</play-word>... but with a twist!" Maeve grabbed her trusty Mario Kart steering wheel and revved it up, determined to ride through the jungle on the hunt!\n\nAs <play-word>night</play-word> fell, giant glow-in-the-dark mushrooms lit up the path, making the jungle look like a wacky carnival, while Zadie glided effortlessly around them, all while dodging frolicking monkeys throwing bananas! Just when they thought they’d never find the rubber chicken, a zany giraffe popped out, wearing roller skates and a tutu, declaring, "You've got to dance to the funky jungle beat to unlock the treasure!" With laughter erupting, Maeve and Zadie boogied under the moonlight, and when they hit the final wacky move, the Lost Rubber Chicken bounced from behind the bushes, sending everyone into a silly frenzy that could be heard echoing across the entire <play-word>continent</play-word>! And so, the adventure turned into the most hysterical play they ever directed, starring Maeve, Zadie, a dancing giraffe, and the funniest rubber chicken the <play-word>world</play-word> had ever seen!
+67	Once upon a time in a wibbly-wobbly world, Maeve and her best friend Zadie decided to skateboard all the way to Antarctica! They zoomed down hills, over rivers, and onto a magical ice bridge that sparkled like glitter. As they reached the <play-word>large</play-word>, frozen <play-word>continent</play-word>, they discovered a hidden door made of frosty candy canes. When they opened the door, they found themselves in a silly, topsy-turvy world where the penguins wore sunglasses and canisters of whipped cream floated around like clouds. In this land, Maeve’s American Girl doll, Clara, came to life and started prancing around in roller skates, shouting, "Let’s catch the <play-word>ocean</play-word> breeze and go on a frosty adventure!"\n\nBut just as they were about to ride their boards along the icy coast, they spotted a gigantic, fuzzy snow monster with <play-word>eight</play-word> fluffy legs sitting atop a pile of bright pink marshmallows! The monster was trying to build a marshmallow castle, but it kept knocking it over and getting woolly fur everywhere! Maeve, Zadie, and Clara jumped into action, showing the monster how to balance the marshmallows just right while doing some crazy tricks on their skateboards. Together, they built the tallest, wobbliest, and most colorful marshmallow castle in the entire <play-word>continent</play-word>! As they sat atop their sweet creation, they laughed at the goofiness of it all, feeling like the most magical heroes of a <play-word>different</play-word> <play-word>country</play-word>, and knowing they had made some silly history together! 
+\.
+
+
+--
+-- Name: question_results_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ubnjeep6ndif35
+--
+
+SELECT pg_catalog.setval('public.question_results_id_seq', 1, false);
+
+
+--
+-- Name: questions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ubnjeep6ndif35
+--
+
+SELECT pg_catalog.setval('public.questions_id_seq', 165, true);
+
+
+--
+-- Name: results_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ubnjeep6ndif35
+--
+
+SELECT pg_catalog.setval('public.results_id_seq', 1, false);
+
+
+--
+-- Name: story_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ubnjeep6ndif35
+--
+
+SELECT pg_catalog.setval('public.story_id_seq', 99, true);
+
+
+--
+-- Name: question_results question_results_pkey; Type: CONSTRAINT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.question_results
+    ADD CONSTRAINT question_results_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: questions questions_pkey; Type: CONSTRAINT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.questions
+    ADD CONSTRAINT questions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: results results_pkey; Type: CONSTRAINT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.results
+    ADD CONSTRAINT results_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: story story_pkey; Type: CONSTRAINT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.story
+    ADD CONSTRAINT story_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: questions questions_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ubnjeep6ndif35
+--
+
+ALTER TABLE ONLY public.questions
+    ADD CONSTRAINT questions_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.story(id);
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: ubnjeep6ndif35
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+

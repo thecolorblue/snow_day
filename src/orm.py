@@ -56,7 +56,11 @@ class Storyline(Base):
     __tablename__ = 'storyline'
 
     storyline_id = Column(Integer, primary_key=True, autoincrement=True)
-    # additional columns...
+    # Relationship to track original request context
+    original_request = Column(Text)
+    
+    # Status tracking for storyline processing states
+    status = Column(String, nullable=False)
 
     steps = relationship(
         "StorylineStep",
