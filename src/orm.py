@@ -3,7 +3,7 @@ import enum
 import logging
 import os
 
-from sqlalchemy import JSON, Column, DateTime, Enum, Integer, String, Text, ForeignKey, create_engine, func
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKeyConstraint, Integer, String, Table, Text, ForeignKey, create_engine, func
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker, joinedload
 
 Base = declarative_base()
@@ -31,27 +31,42 @@ def db_session():
         db.close()
 
 
+# Association class for many-to-many relationship between Story and Question
+class StoryQuestion(Base):
+    __tablename__ = 'story_question'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    story_id = Column(Integer, ForeignKey('story.id', ondelete='CASCADE'), nullable=False)
+    question_id = Column(Integer, ForeignKey('question.id', ondelete='CASCADE'), nullable=False)
+    
+    # Add relationships to both sides
+    story = relationship("Story", back_populates="story_questions")
+    question = relationship("Question", back_populates="story_questions")
+
 class Story(Base):
     __tablename__ = 'story'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     content = Column(Text, nullable=False)
 
-    questions = relationship("Question", back_populates="story", cascade="all, delete")
+    # Many-to-many relationship with Question through StoryQuestion
+    story_questions = relationship("StoryQuestion", back_populates="story", cascade="all, delete-orphan")
+    questions = relationship("Question", secondary="story_question", viewonly=True)
 
 
 class Question(Base):
-    __tablename__ = 'questions'
+    __tablename__ = 'question'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    story_id = Column(Integer, ForeignKey('story.id', ondelete='CASCADE'), nullable=False)
     type = Column(Text, nullable=False)
     question = Column(Text, nullable=False)
     key = Column(Text, nullable=False)
     correct = Column(Text, nullable=False)
     answers = Column(Text)
 
-    story = relationship("Story", back_populates="questions")
+    # Many-to-many relationship with Story through StoryQuestion
+    story_questions = relationship("StoryQuestion", back_populates="question", cascade="all, delete-orphan")
+    stories = relationship("Story", secondary="story_question", viewonly=True)
 
 class Storyline(Base):
     __tablename__ = 'storyline'
@@ -99,9 +114,7 @@ class StorylineProgress(Base):
     __tablename__ = 'storyline_progress'
 
     storyline_progress_id = Column(Integer, primary_key=True, autoincrement=True)
-    storyline_id = Column(Integer, ForeignKey('storyline.storyline_id', ondelete='CASCADE'), nullable=False)
-    storyline_step_id = Column(Integer, ForeignKey('storyline_step.storyline_step_id', ondelete='CASCADE'), nullable=False)
-    story_id = Column(Integer, ForeignKey('story.id'), nullable=False)
+    story_question_id = Column(Integer, ForeignKey('story_question.id'), nullable=False)
     duration = Column(Integer)
     score = Column(Integer)
     attempts = Column(Integer)
@@ -109,10 +122,20 @@ class StorylineProgress(Base):
 
     # Existing relationships
     storyline = relationship("Storyline", back_populates="progress")
-    story = relationship("Story")
+    story_question = relationship("StoryQuestion",
+                                 foreign_keys=[story_question_id])
     
     # NEW: link back to StorylineStep
     storyline_step = relationship("StorylineStep", back_populates="progress")
+    
+    # Convenience properties to access story and question
+    @property
+    def story(self):
+        return self.story_question.story if self.story_question else None
+        
+    @property
+    def question(self):
+        return self.story_question.question if self.story_question else None
 
 
 
@@ -177,15 +200,17 @@ def get_storyline_with_step_progress(session, storyline_id):
         }
 
         for p in step.progress:
-            step_dict["progress"].append({
+            progress_dict = {
                 "storyline_progress_id": p.storyline_progress_id,
                 "storyline_id": p.storyline_id,
                 "storyline_step_id": p.storyline_step_id,
-                "story_id": p.story_id,
+                "story_id": p.story_question.story_id if p.story_question else None,
+                "question_id": p.story_question.question_id if p.story_question else None,
                 "duration": p.duration,
                 "score": p.score,
                 "attempts": p.attempts,
-            })
+            }
+            step_dict["progress"].append(progress_dict)
 
         storyline_dict["steps"].append(step_dict)
 
@@ -234,7 +259,6 @@ def create_storyline_from_dict(session, stories_data):
         questions = item.get("questions", [])
         for q in questions:
             new_question = Question(
-                story_id=new_story.id,
                 type=q["type"],
                 question=q["question"],
                 key=q["key"],
@@ -242,6 +266,14 @@ def create_storyline_from_dict(session, stories_data):
                 answers=q["answers"]
             )
             session.add(new_question)
+            session.flush()  # Ensure new_question.id is available
+            
+            # Create a StoryQuestion association
+            story_question = StoryQuestion(
+                story_id=new_story.id,
+                question_id=new_question.id
+            )
+            session.add(story_question)
 
         # Create a StorylineStep referencing our new Story
         new_step = StorylineStep(
