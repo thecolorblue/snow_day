@@ -79,6 +79,30 @@ def get_all_storylines() -> List[Dict]:
             storyline_list.append(storyline_dict)
             
     return storyline_list
+def get_all_questions() -> List[Dict]:
+    """
+    Return all questions from the database
+    """
+    with db_session() as session:
+        # Query all questions and join with story to get story content
+        query = """
+        SELECT q.id, q.story_id, q.type, q.question, q.key, q.correct, q.answers, s.content as story_content
+        FROM questions q
+        JOIN story s ON q.story_id = s.id
+        """
+        
+        session.execute(query)
+        
+        # Fetch all rows from the result set
+        rows = session.fetchall()
+        
+        columns = [description[0] for description in session.description]
+        
+        # Convert each row into a dictionary
+        questions = [dict(zip(columns, row)) for row in rows]
+        
+    return questions
+
 
 
 def save_assignment(story: str, questions: List[Question]):
@@ -222,7 +246,20 @@ def setup_routes(app: FastAPI):
             "request": request,
             "assignments": assignments
         })
-    
+        
+    @app.get("/questions", response_class=HTMLResponse)
+    async def questions_dashboard(request: Request):
+        """
+            View the Questions Dashboard
+        """
+
+        questions = get_all_questions()
+
+        return templates.TemplateResponse("questions.html", {
+            "request": request,
+            "questions": questions
+        })
+
     @app.get("/storylines", response_class=HTMLResponse)
     async def storyline_dashboard(request: Request):
         """
