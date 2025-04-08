@@ -1,0 +1,14 @@
+.git
+
+
+node_modules
+alembic
+media
+
+story_backup*
+results.db
+.DS_Store
+.env
+alembic.ini
+
+env

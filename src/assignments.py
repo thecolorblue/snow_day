@@ -84,11 +84,12 @@ def get_all_questions() -> List[Dict]:
     Return all questions from the database
     """
     with db_session() as session:
-        # Query all questions and join with story to get story content
+        # Query all questions and join with story through the association table
         query = """
-        SELECT q.id, q.story_id, q.type, q.question, q.key, q.correct, q.answers, s.content as story_content
+        SELECT q.id, q.type, q.question, q.key, q.correct, q.answers, s.id as story_id, s.content as story_content
         FROM questions q
-        JOIN story s ON q.story_id = s.id
+        JOIN story_question sq ON q.id = sq.question_id
+        JOIN story s ON sq.story_id = s.id
         """
         
         session.execute(query)
@@ -114,16 +115,26 @@ def save_assignment(story: str, questions: List[Question]):
     """
     with db_session() as session:
 
+        # Insert the story
         session.execute('INSERT INTO story (content) VALUES (%s) RETURNING id', (story,))
         story_id = session.fetchone()[0]
 
-        # Insert questions into the questions table, linking them to the story by story_id
+        # Insert questions into the questions table (without story_id)
         for question in questions:
+            # Insert the question
             session.execute('''
-                INSERT INTO questions (story_id, type, question, key, correct, answers)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (story_id, question.type, question.question, question.key, question.correct, ','.join(question.answers or [])))
+                INSERT INTO questions (type, question, key, correct, answers)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            ''', (question.type, question.question, question.key, question.correct, ','.join(question.answers or [])))
             
+            question_id = session.fetchone()[0]
+            
+            # Create the association in the story_question table
+            session.execute('''
+                INSERT INTO story_question (story_id, question_id)
+                VALUES (%s, %s)
+            ''', (story_id, question_id))
 
     return {
         "story_id": story_id,
@@ -142,8 +153,13 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
         
         story_content = story_content[0]
         
-        # Fetch all questions associated with the story
-        session.execute("SELECT type, question, key, correct, answers FROM questions WHERE story_id = %s", (story_id,))
+        # Fetch all questions associated with the story through the association table
+        session.execute("""
+            SELECT q.type, q.question, q.key, q.correct, q.answers
+            FROM questions q
+            JOIN story_question sq ON q.id = sq.question_id
+            WHERE sq.story_id = %s
+        """, (story_id,))
         questions = session.fetchall()
 
         # Convert each fetched question into a Question object
