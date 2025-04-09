@@ -215,7 +215,7 @@ FRIENDS = [
     'Zoe',
 ]
 
-class Question:
+class QuestionViewModel:
     type: str
     question: str
     key: str
@@ -229,8 +229,8 @@ class Question:
         self.correct = correct
         self.answers = answers
 
-QUESTIONS: List[Question] = [
-    Question(
+QUESTIONS: List[QuestionViewModel] = [
+    QuestionViewModel(
         type="input",
         question=f"spell: <play-word>{word}</play-word>",
         key=f"spelling:{word}",

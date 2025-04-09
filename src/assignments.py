@@ -8,8 +8,7 @@ import re
 import markdown
 import logging
 from typing import List, Dict, Tuple
-
-from .orm import SessionLocal, Storyline, db_session
+from .orm import SessionLocal, Storyline, db_session, Question, func
 from .utils import (
     get_validated_response,
     replace_keywords_with_links,
@@ -20,7 +19,7 @@ from .utils import (
     STYLES,
     INTERESTS,
     FRIENDS,
-    Question
+    QuestionViewModel
 )
 
 logger = logging.getLogger(name=__file__)
@@ -106,12 +105,12 @@ def get_all_questions() -> List[Dict]:
 
 
 
-def save_assignment(story: str, questions: List[Question]):
+def save_assignment(story: str, questions: List[QuestionViewModel]):
     """
     Save story and questions to the SQLite database.
     
     :param story: The story content as a string.
-    :param questions: A list of Question objects.
+    :param questions: A list of QuestionViewModel objects.
     """
     with db_session() as session:
 
@@ -141,7 +140,7 @@ def save_assignment(story: str, questions: List[Question]):
     }
 
 
-def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
+def get_assignment(story_id: int) -> Tuple[str, List[QuestionViewModel]]:
     with db_session() as session:
 
         # Fetch the story content
@@ -163,7 +162,7 @@ def get_assignment(story_id: int) -> Tuple[str, List[Question]]:
         questions = session.fetchall()
 
         # Convert each fetched question into a Question object
-        question_list = [Question(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
+        question_list = [QuestionViewModel(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
         
     return story_content, question_list
 
@@ -303,11 +302,41 @@ def setup_routes(app: FastAPI):
             Create a new Storyline
         """
         # Select random questions and words
-        question_list = trick_words or random.sample(QUESTIONS, 6)
+        # Select random questions from the database if trick_words is empty
+        if trick_words:
+            question_list = trick_words
+        else:
+            db = SessionLocal()
+            try:
+                # Query 6 random questions from the database
+                db_questions = db.query(Question).order_by(func.random()).limit(6).all()
+                question_list = db_questions
+            except Exception as e:
+                db.close()
+                raise HTTPException(status_code=500, detail=f"Error fetching questions: {str(e)}")
+            finally:
+                db.close()
         
         # Create JSON data package
+        # Convert Question objects to serializable format if needed
+        serialized_questions = []
+        if trick_words:
+            # If trick_words is provided, use it directly
+            serialized_questions = question_list
+        else:
+            # Convert SQLAlchemy Question objects to serializable format
+            for q in question_list:
+                serialized_questions.append({
+                    "id": q.id,
+                    "type": q.type,
+                    "question": q.question,
+                    "key": q.key,
+                    "correct": q.correct,
+                    "answers": q.answers.split(',') if q.answers else None
+                })
+        
         storyline_data = {
-            "question_list": question_list,
+            "question_list": serialized_questions,
             "genre": genres or random.choice(GENRES),
             "location": locations or random.choice(LOCATIONS),
             "style": styles or random.choice(STYLES),
@@ -362,11 +391,41 @@ def setup_routes(app: FastAPI):
         friends: list[str] = Form([])
     ):
         # Select random questions and words
-        question_list = trick_words or random.sample(QUESTIONS, 6)
+        # Select random questions from the database if trick_words is empty
+        if trick_words:
+            question_list = trick_words
+        else:
+            db = SessionLocal()
+            try:
+                # Query 6 random questions from the database
+                db_questions = db.query(Question).order_by(func.random()).limit(6).all()
+                question_list = db_questions
+            except Exception as e:
+                db.close()
+                raise HTTPException(status_code=500, detail=f"Error fetching questions: {str(e)}")
+            finally:
+                db.close()
+        
+        # Convert Question objects to serializable format if needed
+        serialized_questions = []
+        if trick_words:
+            # If trick_words is provided, use it directly
+            serialized_questions = question_list
+        else:
+            # Convert SQLAlchemy Question objects to serializable format
+            for q in question_list:
+                serialized_questions.append({
+                    "id": q.id,
+                    "type": q.type,
+                    "question": q.question,
+                    "key": q.key,
+                    "correct": q.correct,
+                    "answers": q.answers.split(',') if q.answers else None
+                })
         
         # Create JSON data package
         assignment_data = {
-            "question_list": question_list,
+            "question_list": serialized_questions,
             "genre": genres or random.choice(GENRES),
             "location": locations or random.choice(LOCATIONS),
             "style": styles or random.choice(STYLES),

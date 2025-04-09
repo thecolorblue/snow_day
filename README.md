@@ -1,3 +1,13 @@
+- get storyline questions from questions table (start with random)
+
+- Create storyline UI to match assignment UI
+- Switch UI to next.js / vercel
+
+- Student profiles that keep track of preferences
+- add 'Documents' with document storage, dashboard and viewing UI
+- ETL/async process for pulling out student metrics from documents
+
+- print art onto mugs for $
 
 - assignment questions should show if the answer is correct
 - make question text box bigger
