@@ -8,9 +8,9 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import joinedload
 
-from .orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func
-from .progress import StorylineProgress
-from .utils import (
+from ..orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func
+from ..progress import StorylineProgress
+from ..utils import (
     GENRES,
     LOCATIONS,
     STYLES,
@@ -23,7 +23,7 @@ logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.DEBUG)
 
 # Initialize Jinja2 templates - Consider defining this centrally and importing/passing
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="src/storyline/templates")
 
 router = APIRouter()
 
