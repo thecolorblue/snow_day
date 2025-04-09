@@ -1,5 +1,3 @@
-- get storyline questions from questions table (start with random)
-
 - Create storyline UI to match assignment UI
 - Switch UI to next.js / vercel
 

@@ -10,6 +10,7 @@ import logging
 from typing import List, Dict, Tuple
 from .orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func # Added StorylineStep, Story
 from sqlalchemy.orm import joinedload
+from .progress import StorylineProgress # Import StorylineProgress
 from .utils import (
     get_validated_response,
     replace_keywords_with_links,
@@ -273,22 +274,19 @@ def setup_routes(app: FastAPI):
     async def view_storyline_step(request: Request, storyline_id: int, storyline_step_id: int):
         """
         Display a specific step (page) within a storyline, including its story and questions.
+        Fetches and includes the latest progress for each story within the storyline.
         """
-        # These might be useful for showing results from a previous attempt on this page,
-        # but their implementation depends on how progress is tracked and passed.
-        # For now, setting to None.
-        last_session_questions = request.query_params.get('questions') # Or fetch from progress DB
-        last_session_correct = request.query_params.get('correct') # Or fetch from progress DB
+        # Fetch the latest progress for each story in this storyline
+        storyline_progress = StorylineProgress(storyline_id=storyline_id)
 
         try:
-            story_id, story_content, questions = get_storyline_step_details(storyline_step_id) # Unpack story_id
+            # Unpack story_id, story_content, questions
+            story_id, story_content, questions = get_storyline_step_details(storyline_step_id)
         except HTTPException as e:
             raise e
         except Exception as e:
              logger.error(f"Error fetching storyline step details for step {storyline_step_id}: {e}")
              raise HTTPException(status_code=500, detail="Internal server error fetching storyline step.")
-    
-
 
         return templates.TemplateResponse('classroom.html', {
             "request": request,
@@ -297,9 +295,9 @@ def setup_routes(app: FastAPI):
             "story_id": story_id, # Pass story_id to the template
             "story": markdown.markdown(story_content),
             "questions": questions,
-            "last_session_questions": last_session_questions,
-            "last_session_correct": last_session_correct
+            "storyline_progress": storyline_progress # Pass the fetched progress
         })
+
     @app.get("/assignments", response_class=HTMLResponse)
     async def assignment_dashboard(request: Request):
         """
