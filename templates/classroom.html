@@ -359,7 +359,7 @@ customElements.define('question-link', QuestionLink);
         <div class="panel content">
           <div id="story" class="card story">
             <audio controls>
-              <source src="/media/assignment-{{story_id}}.mp3" type="audio/mpeg">
+              <source src="/media/assignment-{{ story_id }}.mp3" type="audio/mpeg">
               Your browser does not support the audio element.
             </audio>
             <p id="story-content">{{ story|safe }}</p>
@@ -367,7 +367,7 @@ customElements.define('question-link', QuestionLink);
         </div>
 
         <div class="panel quiz"><!-- Updated form with tracking -->
-          <form id="gradeForm" autocomplete="off" method="POST" action="/assignments/{{story_id}}/submit">
+          <form id="gradeForm" autocomplete="off" method="POST" action="/storyline/{{storyline_id}}/page/{{storyline_step_id}}/submit">
               <!-- Hidden input to store the page load timestamp -->
               <input type="hidden" id="pageLoadTime" name="pageLoadTime" />
           
