@@ -1,26 +1,17 @@
-import json
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse # Keep RedirectResponse for /assignments POST
 from fastapi.templating import Jinja2Templates
-import random
-import re
-import markdown
 import logging
+import json # Keep json for /assignments POST
 from typing import List, Dict, Tuple
-from .orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func # Added StorylineStep, Story
-from sqlalchemy.orm import joinedload
-from .progress import StorylineProgress # Import StorylineProgress
+from .orm import db_session # Removed unused ORM models
+# Removed unused imports: random, re, markdown, SessionLocal, Storyline, StorylineStep, Story, Question, func, joinedload, StorylineProgress
 from .utils import (
-    get_validated_response,
-    replace_keywords_with_links,
-    generate_tts,
-    QUESTIONS,
-    GENRES,
-    LOCATIONS,
-    STYLES,
-    INTERESTS,
-    FRIENDS,
+    get_validated_response, # Assuming this might be used by create_assignment or submit_form indirectly
+    replace_keywords_with_links, # Assuming this might be used by create_assignment or submit_form indirectly
+    generate_tts, # Assuming this might be used by create_assignment or submit_form indirectly
+    QUESTIONS, # Assuming this might be used by create_assignment or submit_form indirectly
+    # Removed unused constants: GENRES, LOCATIONS, STYLES, INTERESTS, FRIENDS
     QuestionViewModel
 )
 
@@ -61,25 +52,7 @@ def get_student_assignments() -> List[Dict]:
     return assignments
 
 
-def get_all_storylines() -> List[Dict]:
-    """
-    Return all storylines from the database with their status
-    """
-    with db_session() as session:
-        storylines = session.query(Storyline).all()
-        
-        # Convert Storyline objects to dictionaries
-        storyline_list = []
-        for storyline in storylines:
-            storyline_dict = {
-                "storyline_id": storyline.storyline_id,
-                "original_request": storyline.original_request,
-                "status": storyline.status,
-                "step_count": len(storyline.steps) if storyline.steps else 0
-            }
-            storyline_list.append(storyline_dict)
-            
-    return storyline_list
+# Removed get_all_storylines function (moved to storyline.py)
 def get_all_questions() -> List[Dict]:
     """
     Return all questions from the database
@@ -167,41 +140,7 @@ def get_assignment(story_id: int) -> Tuple[str, List[QuestionViewModel]]:
         question_list = [QuestionViewModel(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
         
     return story_content, question_list
-def get_storyline_step_details(storyline_step_id: int) -> Tuple[int, str, List[QuestionViewModel]]: # Added int for story_id
-    """
-    Fetch the story ID, story content, and associated questions for a specific storyline step.
-    """
-    with db_session() as session:
-        # Fetch the StorylineStep, joining the related Story and its Questions
-        storyline_step = (
-            session.query(StorylineStep)
-            .options(
-                joinedload(StorylineStep.story).joinedload(Story.questions)
-            )
-            .filter(StorylineStep.storyline_step_id == storyline_step_id)
-            .one_or_none()
-        )
-
-        if not storyline_step or not storyline_step.story:
-            raise HTTPException(status_code=404, detail=f"Storyline step {storyline_step_id} or its story not found.")
-
-        story_id = storyline_step.story.id # Get the story ID
-
-        story_content = storyline_step.story.content
-        questions = storyline_step.story.questions
-
-        # Convert Question ORM objects to QuestionViewModel
-        question_list = [
-            QuestionViewModel(
-                type=q.type,
-                question=q.question,
-                key=q.key,
-                correct=q.correct,
-                answers=(q.answers or '').split(',')
-            ) for q in questions
-        ]
-
-    return story_id, story_content, question_list # Return story_id
+# Removed get_storyline_step_details function (moved to storyline.py)
 
 
 
@@ -270,53 +209,24 @@ def setup_routes(app: FastAPI):
         return RedirectResponse(url='/assignments/', status_code=303)
 
 
-    @app.get("/storyline/{storyline_id}/page/{storyline_step_id}", response_class=HTMLResponse)
-    async def view_storyline_step(request: Request, storyline_id: int, storyline_step_id: int):
-        """
-        Display a specific step (page) within a storyline, including its story and questions.
-        Fetches and includes the latest progress for each story within the storyline.
-        """
-        # Fetch the latest progress for each story in this storyline
-        storyline_progress = StorylineProgress(storyline_id=storyline_id)
-
-        try:
-            # Unpack story_id, story_content, questions
-            story_id, story_content, questions = get_storyline_step_details(storyline_step_id)
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-             logger.error(f"Error fetching storyline step details for step {storyline_step_id}: {e}")
-             raise HTTPException(status_code=500, detail="Internal server error fetching storyline step.")
-
-        return templates.TemplateResponse('classroom.html', {
-            "request": request,
-            "storyline_id": storyline_id,
-            "storyline_step_id": storyline_step_id,
-            "story_id": story_id, # Pass story_id to the template
-            "story": markdown.markdown(story_content),
-            "questions": questions,
-            "storyline_progress": storyline_progress # Pass the fetched progress
-        })
-
+    # Removed GET /storyline/{storyline_id}/page/{storyline_step_id} route (moved to storyline.py)
     @app.get("/assignments", response_class=HTMLResponse)
     async def assignment_dashboard(request: Request):
         """
             View the Assignment Dashboard
         """
-
         assignments = get_student_assignments()
 
         return templates.TemplateResponse("assignments.html", {
             "request": request,
             "assignments": assignments
         })
-        
+
     @app.get("/questions", response_class=HTMLResponse)
     async def questions_dashboard(request: Request):
         """
             View the Questions Dashboard
         """
-
         questions = get_all_questions()
 
         return templates.TemplateResponse("questions.html", {
@@ -324,97 +234,15 @@ def setup_routes(app: FastAPI):
             "questions": questions
         })
 
-    @app.get("/storylines", response_class=HTMLResponse)
-    async def storyline_dashboard(request: Request):
-        """
-            View the Storyline Dashboard
-        """
+    # Removed GET /storyline/{storyline_id}/page/{storyline_step_id} route (moved to storyline.py)
+    # Removed GET /storylines route (moved to storyline.py)
+    # Removed POST /storylines route (moved to storyline.py)
+    # Removed GET /storylines/create route (moved to storyline.py)
+# Removed leftover lines
 
-        storylines = get_all_storylines()
-
-        return templates.TemplateResponse("storylines.html", {
-            "request": request,
-            "storylines": storylines
-        })
-
-    @app.post("/storylines")
-    async def create_storyline(
-        trick_words: list[str] = Form([]),
-        genres = Form(None),
-        locations = Form(None),
-        styles = Form(None),
-        interests: list[str] = Form([]),
-        gen_ttl: bool = Form(True),
-        friends: list[str] = Form([])
-    ):
-        """
-            Create a new Storyline
-        """
-        # Select random questions and words
-        # Select random questions from the database if trick_words is empty
-        if trick_words:
-            question_list = trick_words
-        else:
-            db = SessionLocal()
-            try:
-                # Query 6 random questions from the database
-                db_questions = db.query(Question).order_by(func.random()).limit(6).all()
-                question_list = db_questions
-            except Exception as e:
-                db.close()
-                raise HTTPException(status_code=500, detail=f"Error fetching questions: {str(e)}")
-            finally:
-                db.close()
-        
-        # Create JSON data package
-        # Convert Question objects to serializable format if needed
-        serialized_questions = []
-        if trick_words:
-            # If trick_words is provided, use it directly
-            serialized_questions = question_list
-        else:
-            # Convert SQLAlchemy Question objects to serializable format
-            for q in question_list:
-                serialized_questions.append({
-                    "id": q.id,
-                    "type": q.type,
-                    "question": q.question,
-                    "key": q.key,
-                    "correct": q.correct,
-                    "answers": q.answers.split(',') if q.answers else None
-                })
-        
-        storyline_data = {
-            "question_list": serialized_questions,
-            "genre": genres or random.choice(GENRES),
-            "location": locations or random.choice(LOCATIONS),
-            "style": styles or random.choice(STYLES),
-            "selected_interests": interests if interests else random.sample(INTERESTS, 2),
-            "friend": random.choice(friends or FRIENDS)
-        }
-        # Create new Storyline record
-        db = SessionLocal()
-        try:
-            storyline = Storyline(
-                original_request=json.dumps(storyline_data),
-                status="pending"
-            )
-            db.add(storyline)
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=500, detail=str(e))
-        
-        return RedirectResponse(url="/storylines/", status_code=303)
-
-    @app.get("/storylines/create", response_class=HTMLResponse)
-    async def storyline_form(request: Request):
-        """
-            Create Storylines Form
-        """
-        return templates.TemplateResponse("create_storyline.html", {
-            "request": request
-        })
+    # Removed GET /storylines route (moved to storyline.py)
+    # Removed POST /storylines route (moved to storyline.py)
+    # Removed GET /storylines/create route (moved to storyline.py)
 
 
 

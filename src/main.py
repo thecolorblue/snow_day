@@ -18,7 +18,7 @@ from openai import OpenAI
 from pathlib import Path
 
 from .orm import db_session
-from . import assignments
+from . import assignments, storyline # Import the new storyline module
 from .stories import generate_story
 from .utils import (
     get_validated_response,
@@ -97,7 +97,8 @@ app.mount("/media", NoCacheStaticFiles(directory="media"), name="media")
 templates = Jinja2Templates(directory="templates")
 
 # Include routes from assignments.py
-assignments.setup_routes(app)
+assignments.setup_routes(app) # Keep existing assignment routes
+app.include_router(storyline.router) # Include the new storyline router
 
 @app.get("/classroom_page", response_class=HTMLResponse)
 async def read_root(request: Request):
