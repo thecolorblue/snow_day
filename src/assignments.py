@@ -8,7 +8,8 @@ import re
 import markdown
 import logging
 from typing import List, Dict, Tuple
-from .orm import SessionLocal, Storyline, db_session, Question, func
+from .orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func # Added StorylineStep, Story
+from sqlalchemy.orm import joinedload
 from .utils import (
     get_validated_response,
     replace_keywords_with_links,
@@ -165,6 +166,42 @@ def get_assignment(story_id: int) -> Tuple[str, List[QuestionViewModel]]:
         question_list = [QuestionViewModel(type=q[0], question=q[1], key=q[2], correct=q[3], answers=(q[4] or '').split(',')) for q in questions]
         
     return story_content, question_list
+def get_storyline_step_details(storyline_step_id: int) -> Tuple[int, str, List[QuestionViewModel]]: # Added int for story_id
+    """
+    Fetch the story ID, story content, and associated questions for a specific storyline step.
+    """
+    with db_session() as session:
+        # Fetch the StorylineStep, joining the related Story and its Questions
+        storyline_step = (
+            session.query(StorylineStep)
+            .options(
+                joinedload(StorylineStep.story).joinedload(Story.questions)
+            )
+            .filter(StorylineStep.storyline_step_id == storyline_step_id)
+            .one_or_none()
+        )
+
+        if not storyline_step or not storyline_step.story:
+            raise HTTPException(status_code=404, detail=f"Storyline step {storyline_step_id} or its story not found.")
+
+        story_id = storyline_step.story.id # Get the story ID
+
+        story_content = storyline_step.story.content
+        questions = storyline_step.story.questions
+
+        # Convert Question ORM objects to QuestionViewModel
+        question_list = [
+            QuestionViewModel(
+                type=q.type,
+                question=q.question,
+                key=q.key,
+                correct=q.correct,
+                answers=(q.answers or '').split(',')
+            ) for q in questions
+        ]
+
+    return story_id, story_content, question_list # Return story_id
+
 
 
 def setup_routes(app: FastAPI):
@@ -217,6 +254,7 @@ def setup_routes(app: FastAPI):
 
             # # Insert cumulative score into the database
             try:
+                story_id, story_content, questions = get_storyline_step_details(storyline_step_id) # Unpack story_id
                 session.execute(
                     """
                     INSERT INTO results (score, story_id)
@@ -231,20 +269,33 @@ def setup_routes(app: FastAPI):
         return RedirectResponse(url='/assignments/', status_code=303)
 
 
-    @app.get("/assignments/{id}", response_class=HTMLResponse)
-    async def start_assignment(request: Request, id: str):
+    @app.get("/storyline/{storyline_id}/page/{storyline_step_id}", response_class=HTMLResponse)
+    async def view_storyline_step(request: Request, storyline_id: int, storyline_step_id: int):
         """
-            Start an assignment in the database
+        Display a specific step (page) within a storyline, including its story and questions.
         """
-        last_session_questions = request.query_params.get('questions')
-        last_session_correct = request.query_params.get('correct')
+        # These might be useful for showing results from a previous attempt on this page,
+        # but their implementation depends on how progress is tracked and passed.
+        # For now, setting to None.
+        last_session_questions = request.query_params.get('questions') # Or fetch from progress DB
+        last_session_correct = request.query_params.get('correct') # Or fetch from progress DB
 
-        story, questions = get_assignment(id)
+        try:
+            story_id, story_content, questions = get_storyline_step_details(storyline_step_id) # Unpack story_id
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+             logger.error(f"Error fetching storyline step details for step {storyline_step_id}: {e}")
+             raise HTTPException(status_code=500, detail="Internal server error fetching storyline step.")
+    
+
 
         return templates.TemplateResponse('classroom.html', {
             "request": request,
-            "story_id": id,
-            "story": markdown.markdown(story),
+            "storyline_id": storyline_id,
+            "storyline_step_id": storyline_step_id,
+            "story_id": story_id, # Pass story_id to the template
+            "story": markdown.markdown(story_content),
             "questions": questions,
             "last_session_questions": last_session_questions,
             "last_session_correct": last_session_correct
