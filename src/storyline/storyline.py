@@ -2,15 +2,15 @@ import json
 import random
 import markdown
 import logging
-from typing import List, Dict, Tuple
-from fastapi import APIRouter, Form, HTTPException, Request
+from typing import List, Dict, Tuple, Optional # Added Optional
+from fastapi import APIRouter, Form, HTTPException, Request, Query # Added Query
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import joinedload
 
-from ..orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func
-from ..progress import StorylineProgress
-from ..utils import (
+from src.orm import SessionLocal, Storyline, StorylineStep, Story, Question, db_session, func
+from .progress import StorylineProgress
+from src.utils import (
     GENRES,
     LOCATIONS,
     STYLES,
@@ -101,7 +101,7 @@ async def storyline_dashboard(request: Request):
 
 @router.post("/storylines")
 async def create_storyline(
-    trick_words: list[str] = Form([]),
+    selected_questions: list[int] = Form([]), # Changed from trick_words to selected_questions (list of IDs)
     genres = Form(None),
     locations = Form(None),
     styles = Form(None),
@@ -112,39 +112,37 @@ async def create_storyline(
     """
         Create a new Storyline
     """
-    # Select random questions and words
-    # Select random questions from the database if trick_words is empty
-    if trick_words:
-        question_list = trick_words
+    # Fetch Question objects based on selected IDs
+    question_list = []
+    if selected_questions:
+        with db_session() as db:
+            try:
+                # Query questions matching the selected IDs
+                question_list = db.query(Question).filter(Question.id.in_(selected_questions)).all()
+                if len(question_list) != len(selected_questions):
+                     logger.warning(f"Could not find all selected questions. Found {len(question_list)} out of {len(selected_questions)} requested.")
+                     # Optionally raise an error or handle partially found questions
+            except Exception as e:
+                 raise HTTPException(status_code=500, detail=f"Error fetching selected questions: {str(e)}")
     else:
-        db = SessionLocal()
-        try:
-            # Query 6 random questions from the database
-            db_questions = db.query(Question).order_by(func.random()).limit(6).all()
-            question_list = db_questions
-        except Exception as e:
-            db.close()
-            raise HTTPException(status_code=500, detail=f"Error fetching questions: {str(e)}")
-        finally:
-            db.close()
+        # Handle case where no questions are selected (optional: maybe default to random?)
+        # For now, we proceed with an empty list if none are selected.
+        logger.info("No questions selected for the new storyline.")
 
     # Create JSON data package
     # Convert Question objects to serializable format if needed
+    # Convert fetched Question objects to serializable format for storing in original_request
     serialized_questions = []
-    if trick_words:
-        # If trick_words is provided, use it directly
-        serialized_questions = question_list
-    else:
-        # Convert SQLAlchemy Question objects to serializable format
-        for q in question_list:
-            serialized_questions.append({
-                "id": q.id,
-                "type": q.type,
-                "question": q.question,
-                "key": q.key,
-                "correct": q.correct,
-                "answers": q.answers.split(',') if q.answers else None
-            })
+    for q in question_list:
+        serialized_questions.append({
+            "id": q.id,
+            "type": q.type,
+            "question": q.question,
+            "key": q.key,
+            "correct": q.correct,
+            "answers": q.answers.split(',') if q.answers else None,
+            "classroom": q.classroom # Include classroom for context if needed
+        })
 
     storyline_data = {
         "question_list": serialized_questions,
@@ -173,19 +171,30 @@ async def create_storyline(
     # Redirect to the storyline dashboard after creation
     return RedirectResponse(url="/storylines", status_code=303) # Use router.url_path_for('storyline_dashboard') ideally
 
-@router.get("/storylines/create", response_class=HTMLResponse)
-async def storyline_form(request: Request):
+@router.get("/storylines/create", response_class=HTMLResponse) # Removed path parameter
+async def storyline_form(request: Request, classroom_name: Optional[str] = Query(None)): # Changed to query parameter 'classroom_name'
     """
         Create Storylines Form
     """
+    questions = []
+    if classroom_name: # Check if classroom_name is provided
+        with db_session() as db: # Added database session
+            # Fetch questions for the specified classroom name
+            questions = db.query(Question).filter(Question.classroom == classroom_name).all() # Use classroom_name in query
+    else:
+        # Handle case where classroom_name is not provided (optional: show all questions or an error/message)
+        logger.info("No classroom_name provided, showing form without specific questions.")
+        # You might want to pass a message to the template here
+
     return templates.TemplateResponse("create_storyline.html", {
         "request": request,
-        # Pass necessary variables if the template requires them (e.g., GENRES, LOCATIONS)
         "genres": GENRES,
         "locations": LOCATIONS,
         "styles": STYLES,
         "interests": INTERESTS,
-        "friends": FRIENDS
+        "friends": FRIENDS,
+        "questions": questions, # Pass questions to the template
+        "classroom_name": classroom_name # Pass classroom_name instead of classroom_id
     })
 
 @router.get("/storyline/{storyline_id}/page/{storyline_step_id}", response_class=HTMLResponse)
