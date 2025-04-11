@@ -1,39 +1,17 @@
-from fastapi import FastAPI, Form, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import random
 import os
-import markdown
-import re
 import logging
-from typing import List, Dict, Tuple
-from urllib.parse import urlencode
-import sqlite3
 from dotenv import load_dotenv
 
 from openai import OpenAI
-from pathlib import Path
 
-from .orm import db_session
-from . import assignments # Import the new storyline module
 from .storyline import router as storyline_router
-from .stories import generate_story
-from .utils import (
-    get_validated_response,
-    replace_keywords_with_links,
-    generate_tts,
-    gen_incorrect_answers,
-    QUESTIONS,
-    GENRES,
-    LOCATIONS,
-    STYLES,
-    INTERESTS,
-    FRIENDS,
-    Question
-)
 
 logger = logging.getLogger(name=__file__)
 logger.setLevel(logging.DEBUG)
@@ -97,47 +75,45 @@ app.mount("/media", NoCacheStaticFiles(directory="media"), name="media")
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-# Include routes from assignments.py
-assignments.setup_routes(app) # Keep existing assignment routes
 app.include_router(storyline_router) # Include the new storyline router
 
-@app.get("/classroom_page", response_class=HTMLResponse)
-async def read_root(request: Request):
-    last_session_questions = request.query_params.get('questions')
-    last_session_correct = request.query_params.get('correct')
-    question_list = random.sample(QUESTIONS, 4)
-    word_to_question_map = {q.correct: q for q in question_list}
-    required_words = [item.correct for item in question_list]
-    user_prompt = f"""
-    Write an {random.choice(GENRES)} story located in {random.choice(LOCATIONS)} in the style of {random.choice(STYLES)} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
-    She likes basketball and her best friend is Paige. 
+# @app.get("/classroom_page", response_class=HTMLResponse)
+# async def read_root(request: Request):
+#     last_session_questions = request.query_params.get('questions')
+#     last_session_correct = request.query_params.get('correct')
+#     question_list = random.sample(QUESTIONS, 4)
+#     word_to_question_map = {q.correct: q for q in question_list}
+#     required_words = [item.correct for item in question_list]
+#     user_prompt = f"""
+#     Write an {random.choice(GENRES)} story located in {random.choice(LOCATIONS)} in the style of {random.choice(STYLES)} for my daughter Maeve who is 8 years old. It should be very silly. Over the top silly.
+#     She likes basketball and her best friend is Paige. 
 
-    Make the story about 2 paragraphs long.
+#     Make the story about 2 paragraphs long.
 
-    Include these words in the story: {','.join(required_words)}
-    """
+#     Include these words in the story: {','.join(required_words)}
+#     """
 
-    if last_session_correct:
-        print(f'questions: {last_session_correct}')
+#     if last_session_correct:
+#         print(f'questions: {last_session_correct}')
 
-    if last_session_correct:
-        print(f'correct: {last_session_correct}')
+#     if last_session_correct:
+#         print(f'correct: {last_session_correct}')
 
-    ordered_required_words, story = get_validated_response(user_prompt, required_words)
+#     ordered_required_words, story = get_validated_response(user_prompt, required_words)
 
-    # return a 400 error if there is no story response
-    if story is None:
-        raise HTTPException(status_code=400, detail="No valid story generated")
+#     # return a 400 error if there is no story response
+#     if story is None:
+#         raise HTTPException(status_code=400, detail="No valid story generated")
     
-    final_question_order = [word_to_question_map[word] for word in ordered_required_words]
+#     final_question_order = [word_to_question_map[word] for word in ordered_required_words]
 
-    return templates.TemplateResponse("classroom.html", {
-        "request": request,
-        "story": replace_keywords_with_links(story, ordered_required_words),
-        "questions": final_question_order,
-        "last_session_questions": last_session_questions,
-        "last_session_correct": last_session_correct
-    })
+#     return templates.TemplateResponse("classroom.html", {
+#         "request": request,
+#         "story": replace_keywords_with_links(story, ordered_required_words),
+#         "questions": final_question_order,
+#         "last_session_questions": last_session_questions,
+#         "last_session_correct": last_session_correct
+#     })
 
 
 @app.get("/")

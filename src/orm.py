@@ -64,6 +64,8 @@ class Question(Base):
     correct = Column(Text, nullable=False)
     answers = Column(Text)
 
+    classroom = Column(Text, nullable=False)
+
     # Many-to-many relationship with Story through StoryQuestion
     story_questions = relationship("StoryQuestion", back_populates="question", cascade="all, delete-orphan")
     stories = relationship("Story", secondary="story_question", viewonly=True)

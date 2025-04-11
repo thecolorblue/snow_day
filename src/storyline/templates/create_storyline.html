@@ -75,21 +75,23 @@
     
     <h1>Create New Storyline</h1>
     <form id="storyline-form" action="/storylines" method="POST">
-        <!-- TRICK_WORDS -->
-        <label for="trick-words">Choose Trick Words:</label>
-        <select id="trick-words" name="trick_words" multiple>
-            <option value="">--Select Trick Words--</option>
-            <option>eight</option>
-            <option>large</option>
-            <option>night</option>
-            <option>answer</option>
-            <option>different</option>
-            <option>world</option>
-            <option>continent</option>
-            <option>ocean</option>
-            <option>country</option>
-        </select>
-        <button type="button" class="random-btn" onclick="randomSelectMultiple('trick-words', ['eight', 'large', 'night', 'answer', 'different', 'world', 'continent', 'ocean', 'country'])">Random</button>
+        <!-- QUESTIONS from Classroom -->
+        <label>Select Questions:</label>
+        <div id="questions-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-top: 5px; border-radius: 4px;">
+            {% if questions %}
+                {% for question in questions %}
+                <div class="question-item" style="margin-bottom: 8px;">
+                    <input type="checkbox" id="question-{{ question.id }}" name="selected_questions" value="{{ question.id }}">
+                    <label for="question-{{ question.id }}" style="display: inline; font-weight: normal;">
+                        {{ question.question }} (Type: {{ question.type }}, Correct: {{ question.correct }})
+                    </label>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No questions found for this classroom.</p>
+            {% endif %}
+        </div>
+        <!-- Removed the Random button for questions as it doesn't make sense with specific classroom questions -->
 
         <!-- GENRES -->
         <label for="genres">Choose a Genre:</label>

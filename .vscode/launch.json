@@ -5,10 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: main.py",
+            "name": "Python Debugger: FastAPI",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/main.py"
+            "module": "uvicorn", // Use the uvicorn module
+            "args": [
+                "src.main:app", // Specify the app location
+                "--reload"      // Add the reload flag
+            ],
+            "jinja": true, // Enable Jinja templating debugging if needed
+            "cwd": "${workspaceFolder}" // Ensure it runs from the project root
         }
     ]
 }
