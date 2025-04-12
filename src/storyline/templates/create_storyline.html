@@ -76,22 +76,19 @@
     <h1>Create New Storyline</h1>
     <form id="storyline-form" action="/storylines" method="POST">
         <!-- QUESTIONS from Classroom -->
-        <label>Select Questions:</label>
-        <div id="questions-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-top: 5px; border-radius: 4px;">
+        <label for="questions">Select Questions:</label>
+        <select id="questions" name="selected_questions" multiple style="min-height: 100px; width: 100%; margin-top: 5px;">
             {% if questions %}
                 {% for question in questions %}
-                <div class="question-item" style="margin-bottom: 8px;">
-                    <input type="checkbox" id="question-{{ question.id }}" name="selected_questions" value="{{ question.id }}">
-                    <label for="question-{{ question.id }}" style="display: inline; font-weight: normal;">
-                        {{ question.question }} (Type: {{ question.type }}, Correct: {{ question.correct }})
-                    </label>
-                </div>
+                <option value="{{ question.id }}">
+                    {{ question.question }} (Type: {{ question.type }}, Correct: {{ question.correct }})
+                </option>
                 {% endfor %}
             {% else %}
-                <p>No questions found for this classroom.</p>
+                <option disabled>No questions found for this classroom.</option>
             {% endif %}
-        </div>
-        <!-- Removed the Random button for questions as it doesn't make sense with specific classroom questions -->
+        </select>
+        <button type="button" class="random-btn" onclick="randomSelectMultiple('questions')">Random</button>
 
         <!-- GENRES -->
         <label for="genres">Choose a Genre:</label>
@@ -141,7 +138,7 @@
             <option>Mario Kart</option>
             <option>Zelda</option>
         </select>
-        <button type="button" class="random-btn" onclick="randomSelectMultiple('interests', ['basketball', 'acting', 'directing plays', 'American Girl dolls', 'skateboarding', 'ice skating', 'Mario Kart', 'Zelda'])">Random</button>
+        <button type="button" class="random-btn" onclick="randomSelectMultiple('interests')">Random</button>
 
         <!-- FRIENDS -->
         <label for="friends">Choose Friends:</label>
@@ -152,7 +149,7 @@
             <option>Zadie</option>
             <option>Zoe</option>
         </select>
-        <button type="button" class="random-btn" onclick="randomSelectMultiple('friends', ['Paige', 'Maia', 'Zadie', 'Zoe'])">Random</button>
+        <button type="button" class="random-btn" onclick="randomSelectMultiple('friends')">Random</button>
 
         <div class="ttl-toggle">
             <label for="gen-ttl">Enable TTL Generation:</label>
@@ -169,18 +166,26 @@
             selectElement.value = randomOption;
         }
 
-        function randomSelectMultiple(selectId, options) {
+        function randomSelectMultiple(selectId) { // Removed options argument
             const selectElement = document.getElementById(selectId);
-            const selectedOptions = [];
-            const randomCount = Math.floor(Math.random() * options.length) + 1; // Random number of selections
-            while (selectedOptions.length < randomCount) {
-                const randomOption = options[Math.floor(Math.random() * options.length)];
-                if (!selectedOptions.includes(randomOption)) {
-                    selectedOptions.push(randomOption);
-                }
+            const availableOptions = Array.from(selectElement.options).filter(opt => opt.value && !opt.disabled); // Get actual options from the select element
+            if (availableOptions.length === 0) return; // No options to select
+
+            // Clear previous selections
+            availableOptions.forEach(option => option.selected = false);
+
+            const randomCount = Math.floor(Math.random() * availableOptions.length) + 1; // Random number based on available options
+            const selectedIndices = new Set();
+
+            while (selectedIndices.size < randomCount) {
+                const randomIndex = Math.floor(Math.random() * availableOptions.length);
+                selectedIndices.add(randomIndex);
             }
-            // Clear and set the selected options
-            Array.from(selectElement.options).forEach(option => option.selected = selectedOptions.includes(option.value));
+
+            // Set new selections
+            selectedIndices.forEach(index => {
+                availableOptions[index].selected = true;
+            });
         }
     </script>
 </body>
