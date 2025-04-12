@@ -116,6 +116,8 @@ class StorylineProgress(Base):
     __tablename__ = 'storyline_progress'
 
     storyline_progress_id = Column(Integer, primary_key=True, autoincrement=True)
+    storyline_id = Column(Integer, ForeignKey('storyline.storyline_id'), nullable=False)
+    storyline_step_id = Column(Integer, ForeignKey('storyline_step.storyline_step_id'), nullable=False)
     story_question_id = Column(Integer, ForeignKey('story_question.id'), nullable=False)
     duration = Column(Integer)
     score = Column(Integer)
