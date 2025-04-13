@@ -1,9 +1,8 @@
 - submit storyline story questions route
-- Switch UI to next.js / vercel
 
-- Student profiles that keep track of preferences
 - add 'Documents' with document storage, dashboard and viewing UI
 - ETL/async process for pulling out student metrics from documents
+- Student profiles that keep track of preferences
 
 - assignment questions should show if the answer is correct
 - make question text box bigger
