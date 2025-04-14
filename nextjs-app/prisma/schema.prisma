@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client" // Use suggested .prisma path
 }
 
 datasource db {
@@ -99,4 +100,15 @@ enum taskstatus {
   IN_PROGRESS
   COMPLETED
   FAILED
+}
+
+model Document {
+  id                 Int      @id @default(autoincrement())
+  url                String   @unique // URL from Vercel Blob
+  pathname           String   @unique // Pathname from Vercel Blob
+  contentType        String?  // Content type of the file
+  contentDisposition String   // How the file should be treated by the browser
+  uploadedAt         DateTime @default(now()) @map("uploaded_at")
+
+  @@map("document")
 }

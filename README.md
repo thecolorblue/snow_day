@@ -1,6 +1,5 @@
 - submit storyline story questions route
 
-- add 'Documents' with document storage, dashboard and viewing UI
 - ETL/async process for pulling out student metrics from documents
 - Student profiles that keep track of preferences
 
