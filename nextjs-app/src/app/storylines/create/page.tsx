@@ -16,9 +16,10 @@ const FRIENDS = ['Paige', 'Maia', 'Zadie', 'Zoe'];
 export default async function CreateStorylinePage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   // Data fetching is now handled by QuestionLoader
+  const searchParamsResults = await searchParams;
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
@@ -32,7 +33,7 @@ export default async function CreateStorylinePage({
 
       {/* Render the QuestionLoader, passing searchParams and static lists */}
       <QuestionLoader
-        searchParams={searchParams}
+        searchParams={searchParamsResults}
         genres={GENRES}
         locations={LOCATIONS}
         styles={STYLES}

@@ -112,3 +112,15 @@ model Document {
 
   @@map("document")
 }
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  genre     String
+  location  String
+  style     String
+  interests String[] // Array of strings
+  friends   String[] // Array of strings
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("student")
+}

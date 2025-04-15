@@ -1,7 +1,6 @@
 "use server";
 
 import prisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache'; // To potentially refresh data after submission
 
 // Define the expected structure for form data processing
 interface AnswerData {
@@ -84,7 +83,7 @@ export async function submitStorylineStepAction(
 
     // 3. Calculate score
     let score = 0;
-    let totalQuestions = answers.length; // Or questionIds.length
+    const totalQuestions = answers.length; // Or questionIds.length
 
     answers.forEach(answer => {
         const correctAnswerData = correctAnswersMap.get(answer.questionId);
@@ -149,6 +148,7 @@ export async function submitStorylineStepAction(
     return {
         score: score,
         totalQuestions: totalQuestions,
+        duration: durationSeconds,
         message: "Submission processed (progress saving needs refinement)."
     };
 }

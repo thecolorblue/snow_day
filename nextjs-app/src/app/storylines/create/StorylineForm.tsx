@@ -1,7 +1,7 @@
 "use client"; // Mark this as a Client Component
 
 import React, { useState } from 'react';
-import { Question } from '@prisma/client'; // Import Question type
+import { Question, Student } from '@prisma/client'; // Import Question and Student types
 import { createStorylineAction } from './actions'; // Import the Server Action
 
 // Define props for the component
@@ -12,6 +12,7 @@ interface StorylineFormProps {
   styles: string[];
   interests: string[];
   friends: string[];
+  students: Student[]; // Add students prop
 }
 
 // Helper function for random selection in single-select dropdowns
@@ -34,8 +35,9 @@ export default function StorylineForm({
   genres,
   locations,
   styles,
-  interests,
-  friends,
+  interests: staticInterests, // Renamed from props
+  friends: staticFriends,     // Renamed from props
+  students,
 }: StorylineFormProps) {
   // State for form fields - initialize as needed
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
@@ -44,19 +46,68 @@ export default function StorylineForm({
   const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(''); // State for selected student ID
   // const [genTtl, setGenTtl] = useState<boolean>(true); // State for the checkbox if needed
 
   // Prepare options for multi-select randomizer
   const questionOptions = questions.map(q => ({ value: String(q.id), text: `${q.question} (Type: ${q.type}, Correct: ${q.correct})` }));
-  const interestOptions = interests.map(i => ({ value: i, text: i }));
-  const friendOptions = friends.map(f => ({ value: f, text: f }));
+  const interestOptions = staticInterests.map(i => ({ value: i, text: i }));
+  const friendOptions = staticFriends.map(f => ({ value: f, text: f }));
 
 // The manual handleSubmit function was removed in the previous step.
 // We will now update the form tag to use the server action.
-  // Remove the manual handleSubmit function, as the form's action prop will handle submission
+  // Handle student selection change
+  const handleStudentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const studentId = e.target.value;
+    setSelectedStudentId(studentId);
+
+    if (studentId) {
+      // Find the selected student (convert ID from string to number for comparison)
+      const student = students.find(s => s.id === parseInt(studentId, 10));
+      if (student) {
+        // Populate form fields with the selected student's data
+        setSelectedGenre(student.genre);
+        setSelectedLocation(student.location);
+        setSelectedStyle(student.style);
+        // Ensure arrays are handled correctly, even if null/undefined in data
+        setSelectedInterests(student.interests ?? []);
+        setSelectedFriends(student.friends ?? []);
+      }
+    } else {
+      // Reset fields if "-- Select a Student --" is chosen
+      setSelectedGenre('');
+      setSelectedLocation('');
+      setSelectedStyle('');
+      setSelectedInterests([]);
+      setSelectedFriends([]);
+    }
+  };
+
+  // The form uses a Server Action (`createStorylineAction`), so no manual handleSubmit needed here.
 
   return (
     <form action={createStorylineAction} className="bg-white p-6 rounded-lg shadow-md space-y-6">
+      {/* Student Selection Dropdown */}
+      <div>
+        <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-1">Select Student (Optional):</label>
+        <select
+          id="student"
+          name="student_id" // This name might be used by the server action if needed
+          value={selectedStudentId}
+          onChange={handleStudentChange}
+          className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          <option value="">-- Select a Student --</option>
+          {students.map(student => (
+            // Display student ID. Consider adding a name field to the Student model for better display.
+            <option key={student.id} value={student.id.toString()}> {/* Ensure value is string */}
+              Student ID: {student.id}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500 mt-1">Selecting a student will pre-fill their preferences below.</p>
+      </div>
+
       {/* Questions */}
       <div>
         <label htmlFor="questions" className="block text-sm font-medium text-gray-700 mb-1">Select Questions:</label>
@@ -176,7 +227,7 @@ export default function StorylineForm({
             style={{ minHeight: '100px' }}
           >
              {/* No default "--Select..." needed for multi-select usually */}
-            {interests.map(interest => <option key={interest} value={interest}>{interest}</option>)}
+            {staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)}
           </select>
           <button
             type="button"
@@ -201,7 +252,7 @@ export default function StorylineForm({
             className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             style={{ minHeight: '80px' }}
           >
-            {friends.map(friend => <option key={friend} value={friend}>{friend}</option>)}
+            {staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)}
           </select>
           <button
             type="button"
