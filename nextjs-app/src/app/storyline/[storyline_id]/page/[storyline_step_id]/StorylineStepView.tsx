@@ -16,7 +16,6 @@ interface StorylineStepViewProps {
 export default function StorylineStepView({
   storylineId,
   storylineStepId,
-  storyId,
   storyHtml,
   questions,
 }: StorylineStepViewProps) {
@@ -99,7 +98,7 @@ export default function StorylineStepView({
       <div className="md:w-1/2">
         <form onSubmit={handleSubmit} className="card bg-white p-4 rounded shadow space-y-4">
           <h2 className="text-xl font-semibold mb-2">Quiz</h2>
-          {questions.map((q, index) => (
+          {questions.map((q) => (
             <div key={q.id} className="border p-3 rounded bg-gray-50">
               <p className="mb-2 font-medium">{q.question}</p>
               <div className="space-y-2">

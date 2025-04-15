@@ -3,8 +3,6 @@
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { Question } from '@prisma/client';
-import * as random from 'lodash/random'; // Using lodash for randomness, needs installation
-import * as sampleSize from 'lodash/sampleSize'; // Using lodash for sampling, needs installation
 
 // Define static options (matching the template/form component)
 // Consider moving these to a shared constants file if used elsewhere
@@ -13,6 +11,26 @@ const LOCATIONS = ['under water', 'wild west', 'jungles of Africa', 'Antartica',
 const STYLES = ['poem', 'comic book', 'Shakespeare', 'Harry Potter'];
 const INTERESTS = ['basketball', 'acting', 'directing plays', 'American Girl dolls', 'skateboarding', 'ice skating', 'Mario Kart', 'Zelda'];
 const FRIENDS = ['Paige', 'Maia', 'Zadie', 'Zoe'];
+
+// Helper function to get a random integer between min (inclusive) and max (inclusive)
+function getRandomInt(min: number, max: number): number {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Helper function to get n random unique elements from an array (Fisher-Yates shuffle)
+function sampleSize<T>(arr: T[], n: number): T[] {
+  if (n < 0 || n > arr.length) {
+    throw new Error("Invalid sample size");
+  }
+  const shuffled = arr.slice(); // Create a copy
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; // Swap elements
+  }
+  return shuffled.slice(0, n);
+}
 
 // Type definition for the expected structure of serialized questions
 type SerializedQuestion = {
@@ -75,11 +93,11 @@ export async function createStorylineAction(formData: FormData) {
   // Use selected values or random defaults if not selected
   const storylineData = {
     question_list: serializedQuestions,
-    genre: genre ?? GENRES[random(0, GENRES.length - 1)],
-    location: location ?? LOCATIONS[random(0, LOCATIONS.length - 1)],
-    style: style ?? STYLES[random(0, STYLES.length - 1)],
+    genre: genre ?? GENRES[getRandomInt(0, GENRES.length - 1)],
+    location: location ?? LOCATIONS[getRandomInt(0, LOCATIONS.length - 1)],
+    style: style ?? STYLES[getRandomInt(0, STYLES.length - 1)],
     selected_interests: interests.length > 0 ? interests : sampleSize(INTERESTS, 2),
-    friend: friends.length > 0 ? friends[random(0, friends.length - 1)] : FRIENDS[random(0, FRIENDS.length - 1)],
+    friend: friends.length > 0 ? friends[getRandomInt(0, friends.length - 1)] : FRIENDS[getRandomInt(0, FRIENDS.length - 1)],
   };
 
   // 4. Create Storyline record in the database

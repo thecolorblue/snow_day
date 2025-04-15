@@ -27,7 +27,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     // 3. Save blob metadata to database
-    await prisma.Document.create({
+    await prisma.document.create({
       data: {
         url: blob.url,
         pathname: blob.pathname,

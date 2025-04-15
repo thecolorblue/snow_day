@@ -57,15 +57,16 @@ async function getStorylineStepDetails(storylineStepId: number): Promise<Storyli
 
 // Define the props for the page component
 interface PageProps {
-  params: {
+  params: Promise<{
     storyline_id: string;
     storyline_step_id: string;
-  };
+  }>;
 }
 
 export default async function StorylineStepPage({ params }: PageProps) {
-  const storylineId = parseInt(params.storyline_id, 10);
-  const storylineStepId = parseInt(params.storyline_step_id, 10);
+  const { storyline_id, storyline_step_id } = await params;
+  const storylineId = parseInt(storyline_id, 10);
+  const storylineStepId = parseInt(storyline_step_id, 10);
 
   if (isNaN(storylineId) || isNaN(storylineStepId)) {
     notFound(); // Return 404 if IDs are not valid numbers
@@ -84,7 +85,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
   }
 
   // Parse story content from Markdown to HTML
-  const storyHtml = marked(stepDetails.story.content || '');
+  const storyHtml = await marked(stepDetails.story.content || '');
 
   // Extract questions from the nested structure
   const questions = stepDetails.story.story_question.map(sq => sq.question);

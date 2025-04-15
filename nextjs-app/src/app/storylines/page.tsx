@@ -60,7 +60,7 @@ function formatRequest(requestJson: string | null): string {
     const parsed = JSON.parse(requestJson);
     const truncatedJson = JSON.stringify(parsed, null, 2).substring(0, 100); // Truncate
     return truncatedJson + (JSON.stringify(parsed, null, 2).length > 100 ? '...' : '');
-  } catch (e) {
+  } catch {
     // If parsing fails, return truncated raw string
     const truncatedRaw = requestJson.substring(0, 100);
     return truncatedRaw + (requestJson.length > 100 ? '...' : '');
