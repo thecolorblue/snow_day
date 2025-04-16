@@ -27,6 +27,10 @@ def db_session():
     db = SessionLocal()
     try:
         yield db
+        db.commit() # Commit the transaction on successful completion
+    except Exception:
+        db.rollback() # Rollback on error
+        raise # Re-raise the exception
     finally:
         db.close()
 
