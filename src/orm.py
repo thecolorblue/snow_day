@@ -52,6 +52,7 @@ class Story(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     content = Column(Text, nullable=False)
+    audio = Column(Text, nullable=True) # Added audio column to match Prisma schema
 
     # Many-to-many relationship with Question through StoryQuestion
     story_questions = relationship("StoryQuestion", back_populates="story", cascade="all, delete-orphan")
@@ -168,6 +169,23 @@ class TaskQueue(Base):
     def __repr__(self):
         return f"<TaskQueue(id={self.id}, title={self.title}, status={self.status}, " \
                f"priority={self.priority}, created_at={self.created_at}, updated_at={self.updated_at})>"
+
+
+class Student(Base):
+   __tablename__ = 'student'
+
+   id = Column(Integer, primary_key=True, autoincrement=True)
+   genre = Column(String, nullable=False)
+   location = Column(String, nullable=False)
+   style = Column(String, nullable=False)
+   # Using JSON to store arrays for broader compatibility
+   interests = Column(JSON, nullable=False, server_default='[]') # Default to empty JSON array
+   friends = Column(JSON, nullable=False, server_default='[]')   # Default to empty JSON array
+   created_at = Column(DateTime, default=func.now(), nullable=False)
+
+   def __repr__(self):
+       # Basic representation, adjust as needed
+       return f"<Student(id={self.id}, genre='{self.genre}', location='{self.location}', style='{self.style}')>"
 
 
 def get_storyline_with_step_progress(session, storyline_id):

@@ -57,16 +57,22 @@ async function getStorylineStepDetails(storylineId: number, storylineStep: numbe
 }
 
 interface StoryProgress {
-  step: number;
-
+  storyline_step_id: number;
+  storyline_id: number;
+  storyline_progress_id: number;
+  story_question_id: number;
+  duration: number | null;
+  score: number | null;
+  attempts: number | null;
+  createdAt: Date | null;
 }
 
 async function getStorylineProgress(storylineId: number): Promise<StoryProgress[]> {
-  const storylineProgressList = await prisma.storylineProgress.findMany({
+  return prisma.storylineProgress.findMany({
     where: {
       storyline_id: storylineId
     }
-  })
+  });
 }
 
 // Define the props for the page component
