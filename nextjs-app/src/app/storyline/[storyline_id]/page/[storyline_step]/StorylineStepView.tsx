@@ -1,0 +1,412 @@
+"use client"; // Mark as Client Component
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Question } from '@prisma/client';
+import { submitStorylineStepAction } from './actions'; // Import the server action
+import confetti from 'canvas-confetti'; // Import confetti
+import SelectQuestion from './SelectQuestion'; // Import the new component
+
+// --- TypeScript Declarations for Custom Elements ---
+
+// Allow slot attribute specifically for SVG elements in React
+// (Keep this separate as it modifies React's SVG definition)
+declare module 'react' {
+   interface SVGProps<T> extends React.SVGAttributes<T>, React.ClassAttributes<T> {
+       slot?: string;
+   }
+   // interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+   //   class?: string; // Already included, but being explicit can sometimes help
+   // }
+}
+
+// Material Web component declarations are now in src/types/material-web.d.ts
+
+// --- Component Props ---
+interface StorylineStepViewProps {
+  storylineId: number;
+  storylineStep: number;
+  storyId: number;
+  storyHtml: string; // Already parsed HTML
+  questions: Question[];
+  // Add progress props later
+  // Add potential props for initial state if needed
+}
+
+// --- Component ---
+export default function StorylineStepView({
+ storylineId,
+  storylineStep,
+  storyHtml,
+  questions,
+}: StorylineStepViewProps) {
+  const [answers, setAnswers] = useState<{ [key: string]: string }>({});
+ const [isSubmitting, setIsSubmitting] = useState(false);
+ const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
+ const [pageLoadTime] = useState(new Date()); // Track page load time
+
+ // --- Component State & Refs ---
+ const recognitionRef = useRef<SpeechRecognition | null>(null);
+ 
+ 
+ // --- Effects ---
+ useEffect(() => {
+   // Dynamically import Material Web Components on mount
+   // Ensure these run only on the client side
+   if (typeof window !== 'undefined') {
+       import('@material/web/button/filled-tonal-button.js');
+       import('@material/web/iconbutton/filled-tonal-icon-button.js');
+       import('@material/web/icon/icon.js');
+   }
+
+   // Check if all questions have answers to enable submit button
+   const allAnswered = questions.every(q => answers[`question_${q.id}`]?.trim());
+   setIsSubmitEnabled(allAnswered);
+
+   // Cleanup speech synthesis and recognition on unmount
+   return () => {
+     window.speechSynthesis?.cancel();
+     recognitionRef.current?.abort();
+   };
+ }, [answers, questions]); // Rerun if answers or questions change
+ 
+  // Effect to initialize Speech Recognition
+  useEffect(() => {
+     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+     if (SpeechRecognitionAPI) {
+       const recognitionInstance = new SpeechRecognitionAPI();
+       const grammar = "#JSGF V1.0; grammar letters; public <letter> = a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z ;";
+       // const speechRecognitionList = new SpeechGrammarList(); // Standard API
+       // speechRecognitionList.addFromString(grammar, 1);
+       // recognitionInstance.grammars = speechRecognitionList; // Standard API
+       recognitionInstance.continuous = false;
+       recognitionInstance.interimResults = false; // Process only final results
+       recognitionInstance.lang = 'en-US';
+ 
+      recognitionInstance.onstart = () => console.log('Speech recognition started');
+      recognitionInstance.onend = () => console.log('Speech recognition ended');
+      // Add explicit type for the error event
+      recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error('Speech recognition error:', event.error);
+          // Optionally provide more specific feedback based on event.error
+          // e.g., 'network', 'no-speech', 'audio-capture', 'not-allowed', 'service-not-allowed', 'bad-grammar', 'language-not-supported'
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+              alert("Speech recognition permission denied. Please allow microphone access in your browser settings.");
+          }
+      };
+
+      recognitionRef.current = recognitionInstance;
+    } else {
+       console.warn('Web Speech API (Recognition) is not supported by this browser.');
+     }
+  }, []);
+
+  const handleInputChange = useCallback((questionId: number, value: string) => {
+    setAnswers(prev => ({ ...prev, [`question_${questionId}`]: value }));
+  }, []);
+
+  // Form submission handler using the Server Action
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+       const formData = new FormData(event.currentTarget);
+       const timeElapsed = (new Date().getTime() - pageLoadTime.getTime()) / 1000; // Time in seconds
+       formData.append('pageLoadTime', pageLoadTime.toISOString()); // Send ISO string
+       formData.append('timeElapsed', timeElapsed.toString());
+    // formData.append('pageLoadTime', pageLoadTime.toString());
+
+    try {
+      // Call the server action, passing necessary IDs and form data
+      const result = await submitStorylineStepAction(
+        storylineId,
+        storylineStep,
+        formData
+      );
+
+      // Handle the result from the server action
+      console.log("Submission Result:", result);
+           alert(`Submission successful! Score: ${result.score}/${result.totalQuestions}. ${result.message}`);
+           // Trigger confetti!
+           if (result.score > 0) {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+           }
+           // TODO: Potentially update progress display or navigate based on result
+
+    } catch (error) {
+      console.error("Submission failed:", error);
+      alert(`Submission failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- Child Components for Interactive Elements ---
+ 
+  // Component to play the entire story
+  const PlayStoryButton = ({ storyContentId }: { storyContentId: string }) => {
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+ 
+    const toggleSpeech = useCallback(() => {
+      if (!window.speechSynthesis) {
+        console.warn('Speech synthesis not supported.');
+        return;
+      }
+ 
+      const textElement = document.getElementById(storyContentId);
+      const textToSpeak = textElement?.textContent || '';
+ 
+      if (!utteranceRef.current) {
+        utteranceRef.current = new SpeechSynthesisUtterance(textToSpeak);
+        utteranceRef.current.lang = 'en-US';
+        utteranceRef.current.onend = () => {
+          setIsSpeaking(false);
+          setIsPaused(false);
+          utteranceRef.current = null; // Reset utterance
+          console.log('Speech finished');
+        };
+        utteranceRef.current.onpause = () => {
+          setIsPaused(true);
+          setIsSpeaking(false); // Speaking is false when paused
+          console.log('Speech paused');
+        };
+         utteranceRef.current.onresume = () => {
+          setIsPaused(false);
+          setIsSpeaking(true);
+          console.log('Speech resumed');
+        };
+        utteranceRef.current.onerror = (event) => {
+          console.error('Speech synthesis error:', event.error);
+          setIsSpeaking(false);
+          setIsPaused(false);
+          utteranceRef.current = null;
+        };
+      }
+ 
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause(); // Pause if speaking
+      } else if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume(); // Resume if paused
+      } else {
+        window.speechSynthesis.cancel(); // Clear queue before starting new
+        window.speechSynthesis.speak(utteranceRef.current); // Speak if not speaking/paused
+        setIsSpeaking(true);
+        setIsPaused(false);
+      }
+    }, [storyContentId]);
+ 
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        if (window.speechSynthesis?.speaking) {
+          window.speechSynthesis.cancel();
+        }
+      };
+    }, []);
+ 
+    let buttonText = 'Play Story';
+    let icon = <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>; // Play icon
+ 
+    if (isSpeaking && !isPaused) {
+      buttonText = 'Pause Story';
+      icon = <svg slot="icon" viewBox="0 0 48 48"><path d="M28.5 38v-28H38v28Zm-18 0v-28h9.5v28Z"/></svg>; // Pause icon
+    } else if (isPaused) {
+      buttonText = 'Resume Story';
+      icon = <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>; // Play icon (resume uses play)
+    }
+ 
+    return (
+      React.createElement('md-filled-tonal-button' as any, { className: "button-play mb-2", onClick: toggleSpeech },
+        icon,
+        buttonText
+      )
+    );
+  };
+ 
+  // Component to play a single word or phrase
+  const PlayWordButton = ({ textToSpeak }: { textToSpeak: string }) => {
+    const speakText = useCallback(() => {
+      if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = 'en-US';
+        utterance.pitch = 1;
+        utterance.rate = 1;
+        utterance.volume = 1;
+        utterance.onerror = (event) => console.error('Speech synthesis error:', event.error);
+ 
+        window.speechSynthesis.cancel(); // Clear previous utterances
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.warn('Speech synthesis not supported.');
+      }
+    }, [textToSpeak]);
+ 
+    return (
+      React.createElement('md-filled-tonal-icon-button' as any, { className: "button-play-word", onClick: speakText, style: { '--md-filled-tonal-icon-button-container-width': '32px', '--md-filled-tonal-icon-button-container-height': '32px' } },
+         React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", height: "20px", viewBox: "0 0 24 24", width: "20px", fill: "currentColor" },
+           React.createElement('path', { d: "M0 0h24v24H0z", fill: "none" }),
+           React.createElement('path', { d: "M8 5v14l11-7z" })
+         )
+      )
+    );
+  };
+ 
+  // Component for the speech recognition button
+  const ListenButton = ({ onTranscript }: { onTranscript: (transcript: string) => void }) => {
+     const [isListening, setIsListening] = useState(false);
+ 
+     const handleListen = useCallback(() => {
+         if (!recognitionRef.current) {
+             console.warn('Speech recognition not initialized.');
+             return;
+         }
+ 
+        const recognition = recognitionRef.current;
+
+        // Add explicit type for the result event
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+            let transcript = '';
+            // Iterate through results (though continuous=false means only one final result)
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    transcript += event.results[i][0].transcript;
+                }
+            }
+            console.log('Transcript:', transcript);
+            // Clean up transcript
+            onTranscript(transcript.replace(/\s+/g, '').toLowerCase());
+             setIsListening(false); // Stop listening visually after result
+         };
+ 
+         recognition.onstart = () => {
+             console.log('Speech recognition actually started');
+             setIsListening(true);
+         };
+ 
+         recognition.onend = () => {
+             console.log('Speech recognition actually ended');
+             setIsListening(false);
+        };
+
+        // Add explicit type for the error event
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            console.error('Speech recognition error:', event.error);
+            // Add user feedback for common errors
+            if (event.error === 'no-speech') {
+                alert("No speech detected. Please try speaking clearly.");
+            } else if (event.error === 'audio-capture') {
+                alert("Audio capture failed. Please ensure your microphone is working.");
+            } else if (event.error === 'not-allowed') {
+                 alert("Microphone access denied. Please allow access to use speech recognition.");
+            }
+             setIsListening(false);
+         };
+ 
+ 
+         if (isListening) {
+             recognition.stop();
+         } else {
+             try {
+                 recognition.start();
+             } catch (e) {
+                 // Handle cases where recognition might already be active or other errors
+                 console.error("Error starting speech recognition:", e);
+                 setIsListening(false); // Ensure state is correct if start fails
+             }
+         }
+         // Toggle state immediately for responsiveness, though actual start/stop is async
+         // setIsListening(!isListening); // Let events handle state changes for accuracy
+ 
+     }, [isListening, onTranscript]);
+ 
+     // Use mouse down/up like original? Or just click? Click is simpler for React.
+     // Let's stick to click for now.
+ 
+     return (
+         React.createElement('md-filled-tonal-button' as any, { className: "button-listen", onClick: handleListen },
+             React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", height: "24px", viewBox: "0 -960 960 960", width: "24px", fill: isListening ? '#ff0000' : '#4956e2' },
+                 React.createElement('path', { d: "M480-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-240Zm-40 520v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T480-320q83 0 141.5-58.5T680-520h80q0 105-68 184t-172 93v123h-80Zm40-360q17 0 28.5-11.5T520-520v-240q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v240q0 17 11.5 28.5T480-480Z" })
+             ),
+             isListening ? 'Listening...' : ''
+         )
+     );
+  };
+ 
+  // QuestionLink component (if needed later)
+  // const QuestionLink = ({ keyword }: { keyword: string }) => {
+  //   const handleClick = () => {
+  //     window.location.hash = keyword;
+  //   };
+  //   return <button onClick={handleClick} style={{ marginLeft: '5px', cursor: 'pointer' }}>?</button>;
+  // };
+
+  return (
+    <div className="flex flex-col md:flex-row gap-4">
+      {/* Story Panel */}
+      <div className="md:w-1/2 space-y-4">
+        <div className="card bg-white p-4 rounded shadow">
+                   <h2 className="text-xl font-semibold mb-2">Story</h2>
+                   {/* Use the PlayStoryButton component */}
+                   <PlayStoryButton storyContentId="story-content" />
+          {/* Render story HTML */}
+          <div
+            id="story-content"
+            className="prose max-w-none" // Use prose for basic markdown styling
+            dangerouslySetInnerHTML={{ __html: storyHtml }}
+          />
+          {/* Placeholder for audio element if needed */}
+          {/* <audio controls src={`/media/assignment-${storyId}.mp3`}>Your browser does not support audio.</audio> */}
+        </div>
+      </div>
+
+      {/* Quiz Panel */}
+      <div className="md:w-1/2">
+        <form onSubmit={handleSubmit} className="card bg-white p-4 rounded shadow space-y-4">
+          <h2 className="text-xl font-semibold mb-2">Quiz</h2>
+          {questions.map((q) => (
+            <div key={q.id} className="border p-3 rounded bg-gray-50">
+              <p className="mb-2 font-medium"><PlayWordButton textToSpeak={q.correct} /></p>
+              <div className="space-y-2">
+                {q.type === 'input' && (
+                                   <div className="flex items-center space-x-2">
+                                     {/* Use the ListenButton component */}
+                                     <ListenButton onTranscript={(transcript) => handleInputChange(q.id, transcript)} />
+                    <input
+                      type="text"
+                      id={`q_${q.id}_input`}
+                      name={`question_${q.id}`} // Consistent naming for form data
+                      required
+                      autoComplete="off"
+                      value={answers[`question_${q.id}`] || ''}
+                      onChange={(e) => handleInputChange(q.id, e.target.value)}
+                      // data-answer={q.correct} // For client-side validation if needed
+                      className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                )}
+                {q.type === 'select' && (
+                  <SelectQuestion
+                    question={q}
+                    currentAnswer={answers[`question_${q.id}`]}
+                    handleInputChange={handleInputChange}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+          <button
+            type="submit"
+            disabled={!isSubmitEnabled || isSubmitting}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Answers'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

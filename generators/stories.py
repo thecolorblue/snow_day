@@ -102,13 +102,14 @@ def generate_story(storyline_id: int):
     print(f"Generating story for storyline_id: {storyline_id}")
     with db_session() as session: # Start DB session context and get session object
         storyline = session.get(Storyline, storyline_id) # Use SQLAlchemy session.get()
+        # Serialize and print the storyline object for debugging
         if not storyline:
             print(f"Error: Storyline with ID {storyline_id} not found.")
             return None
         if not storyline.original_request:
             print(f"Error: Storyline {storyline_id} does not have an original_request.")
             return None
-        if storyline.status is not 'pending':
+        if storyline.status != 'pending':
             print(f"Error: Storyline {storyline_id} has already been processed.")
             return None
 
@@ -205,32 +206,28 @@ Include these words in the story: {','.join(required_words)}
                     # Find the original question details from the parsed JSON data
                     original_question_data = word_to_question_map.get(word) # This is now a dict
                     if original_question_data:
-                        # Determine question type from JSON if available, otherwise default/randomize
-                        q_type = original_question_data.get('type', random.choice(['input', 'select']))
-                        q = Question(
-                            type=q_type,
-                            question=original_question_data.get('question', f"What about '{word}'?"), # Fallback question text
-                            key=original_question_data.get('key', f"{word}-key"), # Fallback key
-                            correct=original_question_data['correct'], # 'correct' should always exist
-                            classroom=original_question_data.get('classroom', 'default-classroom') # Extract classroom, provide fallback
-                        )
-                        # If it's a select question, use answers from JSON if available, else generate
-                        if q.type == 'select':
-                            if 'answers' in original_question_data and isinstance(original_question_data['answers'], list):
-                                 # Ensure the correct answer is included and shuffle
-                                answers = list(original_question_data['answers']) # Copy list
-                                if q.correct not in answers:
-                                    answers.append(q.correct) # Add if missing
-                                random.shuffle(answers)
-                                # Limit number of answers if needed (e.g., max 4)
-                                q.answers = answers[:4]
-                            else:
-                                # Fallback to generating incorrect answers if not provided or invalid
-                                q.answers = gen_incorrect_answers(q.correct)
-                                if q.correct not in q.answers:
-                                    q.answers.append(q.correct) # Ensure correct is present
-                                random.shuffle(q.answers)
-                                q.answers = q.answers[:4] # Limit
+                        q_key = original_question_data.get('key')
+                        q_classroom = original_question_data.get('classroom', 'default-classroom') # Extract classroom, provide fallback
+
+                        if not q_key:
+                            print(f"Warning: Missing 'key' for word '{word}' in original_request. Skipping question lookup.")
+                            continue # Skip if key is missing
+
+                        # --- Fetch Question from DB ---
+                        # Assuming 'session' is the active Pony ORM db_session
+                        question_obj = Question.get(key=q_key, classroom=q_classroom)
+
+                        if not question_obj:
+                            print(f"Warning: Question with key='{q_key}' and classroom='{q_classroom}' not found in the database. Skipping.")
+                            # Skip this word if no matching question found in the DB
+                            continue
+
+                        # Add the fetched question to the map for later use in linking
+                        all_questions_map[word] = question_obj
+                        print(f"Found existing question for '{word}': ID={question_obj.id}, Key='{q_key}', Classroom='{q_classroom}'")
+
+                        # No need to manually handle 'select' answers here,
+                        # as the fetched question_obj already contains them.
 
                         all_questions_map[word] = q # Store the newly created Question object
                     else:

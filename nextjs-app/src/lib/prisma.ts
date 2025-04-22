@@ -11,6 +11,7 @@ declare global {
 const prisma = global.prisma || new PrismaClient({
   // Optional: Add logging configuration if needed
   // log: ['query', 'info', 'warn', 'error'],
+  log: ['query', 'info', 'warn', 'error'],
 });
 
 // In development, store the instance on the global object

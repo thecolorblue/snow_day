@@ -19,11 +19,12 @@ type StorylineStepDetails = {
   // TODO: Add progress data fetching if needed
 };
 
-async function getStorylineStepDetails(storylineStepId: number): Promise<StorylineStepDetails | null> {
+async function getStorylineStepDetails(storylineId: number, storylineStep: number): Promise<StorylineStepDetails | null> {
   try {
-    const stepDetails = await prisma.storylineStep.findUnique({
+    const stepDetails = await prisma.storylineStep.findFirst({
       where: {
-        storyline_step_id: storylineStepId,
+        storyline_id: storylineId,
+        step: storylineStep,
       },
       include: {
         story: { // Include the related story
@@ -50,29 +51,44 @@ async function getStorylineStepDetails(storylineStepId: number): Promise<Storyli
     return stepDetails as unknown as StorylineStepDetails;
 
   } catch (error) {
-    console.error(`Error fetching storyline step details for step ${storylineStepId}:`, error);
+    console.error(`Error fetching storyline step details for step ${storylineStep}:`, error);
     return null;
   }
+}
+
+interface StoryProgress {
+  step: number;
+
+}
+
+async function getStorylineProgress(storylineId: number): Promise<StoryProgress[]> {
+  const storylineProgressList = await prisma.storylineProgress.findMany({
+    where: {
+      storyline_id: storylineId
+    }
+  })
 }
 
 // Define the props for the page component
 interface PageProps {
   params: Promise<{
     storyline_id: string;
-    storyline_step_id: string;
+    storyline_step: string;
   }>;
 }
 
 export default async function StorylineStepPage({ params }: PageProps) {
-  const { storyline_id, storyline_step_id } = await params;
+  const { storyline_id, storyline_step } = await params;
   const storylineId = parseInt(storyline_id, 10);
-  const storylineStepId = parseInt(storyline_step_id, 10);
+  const storylineStep = parseInt(storyline_step, 10);
 
-  if (isNaN(storylineId) || isNaN(storylineStepId)) {
+  if (isNaN(storylineId) || isNaN(storylineStep)) {
     notFound(); // Return 404 if IDs are not valid numbers
   }
 
-  const stepDetails = await getStorylineStepDetails(storylineStepId);
+  const stepDetails = await getStorylineStepDetails(storylineId, storylineStep);
+
+  const storylineProgress = await getStorylineProgress(storylineId);
 
   if (!stepDetails) {
     notFound(); // Return 404 if step details are not found
@@ -80,7 +96,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
 
   // Ensure the fetched step belongs to the correct storyline
   if (stepDetails.storyline_id !== storylineId) {
-     console.warn(`Mismatch: Step ${storylineStepId} belongs to storyline ${stepDetails.storyline_id}, not ${storylineId}`);
+     console.warn(`Mismatch: Step ${storylineStep} belongs to storyline ${stepDetails.storyline_id}, not ${storylineId}`);
      notFound();
   }
 
@@ -92,6 +108,11 @@ export default async function StorylineStepPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto p-4">
+      <div className="flex justify-evenly">
+        <div><Link href={`/storyline/${storylineId}/page/1`}>Page 1</Link></div>
+        <div><Link href={`/storyline/${storylineId}/page/2`}>Page 2</Link></div>
+        <div><Link href={`/storyline/${storylineId}/page/3`}>Page 3</Link></div>
+      </div>
       <div className="mb-4">
         <Link href="/storylines" className="text-blue-600 hover:underline">
           &larr; Back to Storylines
@@ -102,7 +123,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
       {/* Pass data to the Client Component */}
       <StorylineStepView
         storylineId={storylineId}
-        storylineStepId={storylineStepId}
+        storylineStep={storylineStep}
         storyId={stepDetails.story.id}
         storyHtml={storyHtml}
         questions={questions}
