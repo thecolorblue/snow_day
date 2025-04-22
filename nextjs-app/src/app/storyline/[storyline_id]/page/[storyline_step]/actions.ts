@@ -11,10 +11,10 @@ interface AnswerData {
 
 export async function submitStorylineStepAction(
     storylineId: number,
-    storylineStepId: number,
+    storylineStep: number,
     formData: FormData
 ) {
-    console.log("Received submission for storyline:", storylineId, "step:", storylineStepId);
+    console.log("Received submission for storyline:", storylineId, "step:", storylineStep);
 
     // 1. Extract answers and timing info from FormData
     const answers: AnswerData[] = [];
@@ -55,7 +55,10 @@ export async function submitStorylineStepAction(
                 where: {
                     story: {
                         storyline_step: {
-                            some: { storyline_step_id: storylineStepId }
+                            some: {
+                                step: storylineStep,
+                                storyline_id: storylineId
+                            }
                         }
                     }
                 },
@@ -75,7 +78,7 @@ export async function submitStorylineStepAction(
         // Ensure story_question exists and has an id
         const storyQuestionId = q.story_question?.[0]?.id ?? null;
         if (storyQuestionId === null) {
-             console.warn(`Could not find StoryQuestion link for Question ID: ${q.id} in Step ID: ${storylineStepId}`);
+             console.warn(`Could not find StoryQuestion link for Question ID: ${q.id} in Step ID: ${storylineStep}`);
         }
         correctAnswersMap.set(q.id, { correct: q.correct, storyQuestionId });
     });
@@ -118,7 +121,7 @@ export async function submitStorylineStepAction(
 
         return {
             storyline_id: storylineId,
-            storyline_step_id: storylineStepId,
+            storyline_step_id: storylineStep,
             story_question_id: storyQuestionId,
             score: (answer.submittedAnswer?.trim().toLowerCase() === correctAnswerData.correct.toLowerCase()) ? 1 : 0, // Score per question
             attempts: 1, // Need logic to increment attempts
@@ -140,7 +143,7 @@ export async function submitStorylineStepAction(
     */
 
     // 6. Revalidate path to show updated progress (if implemented)
-    // revalidatePath(`/storyline/${storylineId}/page/${storylineStepId}`);
+    // revalidatePath(`/storyline/${storylineId}/page/${storylineStep}`);
     // revalidatePath(`/storylines`); // Maybe revalidate dashboard too
 
     // 7. Return result (e.g., score, or redirect)

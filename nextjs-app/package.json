@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@material/web": "^2.3.0",
     "@prisma/client": "^6.6.0",
     "@vercel/blob": "^1.0.0",
+    "canvas-confetti": "^1.9.3",
     "lodash": "^4.17.21",
     "marked": "^15.0.8",
     "next": "15.3.0",
@@ -20,6 +22,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/dom-speech-recognition": "^0.0.6",
     "@types/lodash": "^4.17.16",
     "@types/marked": "^5.0.2",
     "@types/node": "^20",
