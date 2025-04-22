@@ -11,6 +11,7 @@ datasource db {
 model Story {
   id             Int             @id @default(autoincrement())
   content        String
+  audio          String? // Assuming Text maps to String in Prisma and making it optional
   story_question StoryQuestion[]
   storyline_step StorylineStep[]
 

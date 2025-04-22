@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Question } from '@prisma/client';
 import { submitStorylineStepAction } from './actions'; // Import the server action
 import confetti from 'canvas-confetti'; // Import confetti
-import SelectQuestion from './SelectQuestion'; // Import the new component
+import SelectQuestion from './SelectQuestion';
+import { useStorylineProgress } from '@/hooks/useStorylineProgress';
 
 // --- TypeScript Declarations for Custom Elements ---
 
@@ -39,10 +40,8 @@ export default function StorylineStepView({
   storyHtml,
   questions,
 }: StorylineStepViewProps) {
-  const [answers, setAnswers] = useState<{ [key: string]: string }>({});
+  const { progress, answers, pageLoadTime, isValid, handleInputChange, getCorrectnessStatus } = useStorylineProgress(questions);
  const [isSubmitting, setIsSubmitting] = useState(false);
- const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
- const [pageLoadTime] = useState(new Date()); // Track page load time
 
  // --- Component State & Refs ---
  const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -58,16 +57,12 @@ export default function StorylineStepView({
        import('@material/web/icon/icon.js');
    }
 
-   // Check if all questions have answers to enable submit button
-   const allAnswered = questions.every(q => answers[`question_${q.id}`]?.trim());
-   setIsSubmitEnabled(allAnswered);
-
    // Cleanup speech synthesis and recognition on unmount
    return () => {
      window.speechSynthesis?.cancel();
      recognitionRef.current?.abort();
    };
- }, [answers, questions]); // Rerun if answers or questions change
+  }, [answers, questions]); // Rerun if answers or questions change - Kept for cleanup logic
  
   // Effect to initialize Speech Recognition
   useEffect(() => {
@@ -100,19 +95,19 @@ export default function StorylineStepView({
      }
   }, []);
 
-  const handleInputChange = useCallback((questionId: number, value: string) => {
-    setAnswers(prev => ({ ...prev, [`question_${questionId}`]: value }));
-  }, []);
 
   // Form submission handler using the Server Action
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-       const formData = new FormData(event.currentTarget);
-       const timeElapsed = (new Date().getTime() - pageLoadTime.getTime()) / 1000; // Time in seconds
-       formData.append('pageLoadTime', pageLoadTime.toISOString()); // Send ISO string
-       formData.append('timeElapsed', timeElapsed.toString());
-    // formData.append('pageLoadTime', pageLoadTime.toString());
+    const formData = new FormData(event.currentTarget);
+    const timeElapsed = (new Date().getTime() - pageLoadTime.getTime());
+    formData.append('pageLoadTime', pageLoadTime.toISOString());
+    formData.append('timeElapsed', timeElapsed.toString());
+  
+    Object.entries(progress).forEach(([questionId, questionProgress]) => {
+      formData.append(`attempts_${questionId}`, questionProgress.attempts.toString());
+    });
 
     try {
       // Call the server action, passing necessary IDs and form data
@@ -368,13 +363,18 @@ export default function StorylineStepView({
         <form onSubmit={handleSubmit} className="card bg-white p-4 rounded shadow space-y-4">
           <h2 className="text-xl font-semibold mb-2">Quiz</h2>
           {questions.map((q) => (
-            <div key={q.id} className="border p-3 rounded bg-gray-50">
+            <div
+              key={q.id}
+              className={`border p-3 rounded bg-gray-50 ${
+                getCorrectnessStatus(q.id) === true ? 'correct bg-green-100 border-green-300' :
+                getCorrectnessStatus(q.id) === false ? 'wrong bg-red-100 border-red-300' : ''
+              }`} // Add dynamic classes
+            >
               <p className="mb-2 font-medium"><PlayWordButton textToSpeak={q.correct} /></p>
               <div className="space-y-2">
                 {q.type === 'input' && (
                                    <div className="flex items-center space-x-2">
-                                     {/* Use the ListenButton component */}
-                                     <ListenButton onTranscript={(transcript) => handleInputChange(q.id, transcript)} />
+                                     <ListenButton onTranscript={(transcript) => handleInputChange(q.id, transcript, q.correct)} />
                     <input
                       type="text"
                       id={`q_${q.id}_input`}
@@ -382,7 +382,7 @@ export default function StorylineStepView({
                       required
                       autoComplete="off"
                       value={answers[`question_${q.id}`] || ''}
-                      onChange={(e) => handleInputChange(q.id, e.target.value)}
+                      onChange={(e) => handleInputChange(q.id, e.target.value, q.correct)}
                       // data-answer={q.correct} // For client-side validation if needed
                       className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
@@ -400,7 +400,7 @@ export default function StorylineStepView({
           ))}
           <button
             type="submit"
-            disabled={!isSubmitEnabled || isSubmitting}
+            disabled={!isValid || isSubmitting}
             className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Submitting...' : 'Submit Answers'}

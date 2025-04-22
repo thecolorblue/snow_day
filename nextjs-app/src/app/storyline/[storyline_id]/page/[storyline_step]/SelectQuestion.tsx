@@ -4,10 +4,14 @@ import { Question } from '@prisma/client'; // Import from Prisma client
 interface SelectQuestionProps {
   question: Question;
   currentAnswer: string | undefined;
-  handleInputChange: (questionId: number, value: string) => void;
+  handleInputChange: (questionId: number, value: string, correctAnswer: string) => void; // Updated signature
 }
 
-const SelectQuestion: React.FC<SelectQuestionProps> = ({ question, currentAnswer, handleInputChange }) => {
+const SelectQuestion: React.FC<SelectQuestionProps> = ({
+  question,
+  currentAnswer,
+  handleInputChange,
+}) => {
   if (question.type !== 'select' || !question.answers) {
     return null; // Or some fallback UI
   }
@@ -23,7 +27,9 @@ const SelectQuestion: React.FC<SelectQuestionProps> = ({ question, currentAnswer
             value={a}
             required
             checked={currentAnswer === a}
-            onChange={(e) => handleInputChange(question.id, e.target.value)}
+            onChange={(e) => {
+              handleInputChange(question.id, e.target.value, question.correct);
+            }}
             className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
           />
           <span className="text-sm">{a}</span>

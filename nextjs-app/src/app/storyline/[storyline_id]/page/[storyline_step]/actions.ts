@@ -99,7 +99,7 @@ export async function submitStorylineStepAction(
 
     // 4. Calculate duration (example if time tracking is added)
     const submissionTime = Date.now();
-    const durationSeconds = pageLoadTime > 0 ? (submissionTime - pageLoadTime) / 1000 : null;
+    const durationSeconds = formData.get('timeElapsed') ? parseFloat(formData.get('timeElapsed') as string) : null; // Use timeElapsed from form data
 
     // 5. Save progress (attempt) to StorylineProgress
     // We need the story_question_id for each answer to save progress correctly.
@@ -111,9 +111,23 @@ export async function submitStorylineStepAction(
     // A better approach would involve linking progress to specific story_question entries.
 
     // For now, let's just log the intent to save progress, as saving requires story_question_id mapping.
-    console.log("Attempting to save progress (requires story_question_id mapping)...");
-    // Example structure if we had the story_question_id:
-    /*
+    // 5. Find the actual StorylineStep record ID using storyline_id and step number
+    const stepRecord = await prisma.storylineStep.findFirst({
+        where: {
+            storyline_id: storylineId, // Filter by storyline ID
+            step: storylineStep,       // Filter by step number
+        },
+        select: { storyline_step_id: true }, // Select the correct primary key field
+    });
+
+    if (!stepRecord) {
+        console.error(`Could not find StorylineStep record for storyline ${storylineId}, step ${storylineStep}`);
+        throw new Error(`Could not find the specified storyline step.`);
+    }
+    const actualStorylineStepId = stepRecord.storyline_step_id; // Use the correct field name
+    console.log(`Found StorylineStep ID: ${actualStorylineStepId}`);
+
+    // 6. Prepare and save progress entries
     const progressEntries = answers.map(answer => {
         const correctAnswerData = correctAnswersMap.get(answer.questionId);
         const storyQuestionId = correctAnswerData?.storyQuestionId;
@@ -121,11 +135,13 @@ export async function submitStorylineStepAction(
 
         return {
             storyline_id: storylineId,
-            storyline_step_id: storylineStep,
+            storyline_step_id: actualStorylineStepId, // Use the fetched ID
             story_question_id: storyQuestionId,
             score: (answer.submittedAnswer?.trim().toLowerCase() === correctAnswerData.correct.toLowerCase()) ? 1 : 0, // Score per question
-            attempts: 1, // Need logic to increment attempts
-            duration: durationSeconds, // Or duration per question if tracked
+            // Get attempts from FormData (assuming it's sent like 'attempts_QUESTIONID')
+            attempts: parseInt(formData.get(`attempts_${answer.questionId}`) as string || '1', 10),
+            duration: durationSeconds,
+            createdAt: new Date(), // Add current timestamp
         };
     }).filter(entry => entry !== null); // Remove null entries
 
@@ -140,14 +156,12 @@ export async function submitStorylineStepAction(
             // Handle error appropriately
         }
     }
-    */
 
-    // 6. Revalidate path to show updated progress (if implemented)
+    // 7. Revalidate path to show updated progress (if implemented)
     // revalidatePath(`/storyline/${storylineId}/page/${storylineStep}`);
     // revalidatePath(`/storylines`); // Maybe revalidate dashboard too
 
-    // 7. Return result (e.g., score, or redirect)
-    // For now, just return the score
+    // 8. Return result
     return {
         score: score,
         totalQuestions: totalQuestions,
