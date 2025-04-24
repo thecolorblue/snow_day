@@ -2,6 +2,9 @@ import random
 import re
 import argparse
 import json
+import os
+import requests
+from dotenv import load_dotenv
 from typing import List, Dict, Optional, Union
 
 from src.utils import (
@@ -22,6 +25,9 @@ from src.orm import (
 
 from langchain_openai import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 # Initialize the LLM
@@ -153,9 +159,7 @@ def generate_story(storyline_id: int):
 Write an {genre} story located in {location} in the style of {style} for {user_name} who is {user_age} years old. It should be very silly. Over the top silly.
 She likes {interests_string}, and her best friend is {friend}.
 
-Make the story about 2 paragraphs long.
-
-Include these words in the story: {','.join(required_words)}
+Make the story about 4 paragraphs long.
 """
         print("--- USER PROMPT ---")
         print(user_prompt)
@@ -183,21 +187,32 @@ Include these words in the story: {','.join(required_words)}
         processed_paragraphs = []
         all_questions_map = {} # To store questions created for each unique word
 
-        # 4 & 5. Validate, rewrite (if needed), and link keywords for each paragraph
+        # Get Vercel Blob token
+        vercel_blob_token = os.getenv("BLOB_READ_WRITE_TOKEN")
+        if not vercel_blob_token:
+            print("Warning: BLOB_READ_WRITE_TOKEN environment variable not set. Audio upload will be skipped.")
+
+        # 4 & 5. Validate, rewrite (if needed), link keywords, and generate/upload audio for each paragraph
         for i, para in enumerate(paragraphs):
             print(f"--- PROCESSING PARAGRAPH {i+1} ---")
-            validated_para = validate_and_rewrite_paragraph(para, required_words)
-            if not validated_para:
-                print(f"Skipping paragraph {i+1} due to validation/rewrite failure.")
-                continue # Skip this paragraph if validation/rewrite failed
+            tries = 0
+            max_tries = 7
 
-            # Find which required words are actually in the *final* paragraph text
-            words_in_para = [word for word in required_words if word in validated_para]
-            print(f"Words found in paragraph {i+1}: {words_in_para}")
+            while tries < max_tries:
+                validated_para = validate_and_rewrite_paragraph(para, required_words)
+                if not validated_para:
+                    print(f"Skipping paragraph {i+1} due to validation/rewrite failure.")
 
-            # Link keywords in the validated paragraph
-            linked_para = replace_keywords_with_links(validated_para, words_in_para)
-            print(f"Linked paragraph {i+1}: {linked_para}")
+                # Find which required words are actually in the *final* paragraph text
+                words_in_para = [word for word in required_words if word.lower().strip() in validated_para.lower()]
+                print(f"Words found in paragraph {i+1}: {words_in_para}")
+
+                # Link keywords in the validated paragraph
+                linked_para = replace_keywords_with_links(validated_para, words_in_para)
+                print(f"Linked paragraph {i+1}: {linked_para}")
+
+                if len(words_in_para) == len(required_words):
+                    break
 
             # Create/retrieve Question objects for words in this paragraph
             para_questions = []
@@ -215,7 +230,7 @@ Include these words in the story: {','.join(required_words)}
 
                         # --- Fetch Question from DB ---
                         # Assuming 'session' is the active Pony ORM db_session
-                        question_obj = Question.get(key=q_key, classroom=q_classroom)
+                        question_obj = session.query(Question).filter_by(key=q_key, classroom=q_classroom).first()
 
                         if not question_obj:
                             print(f"Warning: Question with key='{q_key}' and classroom='{q_classroom}' not found in the database. Skipping.")
@@ -225,11 +240,6 @@ Include these words in the story: {','.join(required_words)}
                         # Add the fetched question to the map for later use in linking
                         all_questions_map[word] = question_obj
                         print(f"Found existing question for '{word}': ID={question_obj.id}, Key='{q_key}', Classroom='{q_classroom}'")
-
-                        # No need to manually handle 'select' answers here,
-                        # as the fetched question_obj already contains them.
-
-                        all_questions_map[word] = q # Store the newly created Question object
                     else:
                         print(f"Warning: Could not find original question data for word: {word}")
                         continue # Skip if we can't find the base question data
@@ -238,11 +248,78 @@ Include these words in the story: {','.join(required_words)}
                 if word in all_questions_map:
                     para_questions.append(all_questions_map[word])
 
+            audio_url = None # Initialize audio URL for this paragraph
 
+            if validated_para and vercel_blob_token: # Only proceed if paragraph is valid and token exists
+                try:
+                    # 1. Generate TTS locally
+                    filename_base = f"story_{storyline_id}_para_{i+1}"
+                    output_filename = f"{filename_base}.mp3"
+                    local_audio_dir = "./media/tts_temp" # Temporary local storage
+                    os.makedirs(local_audio_dir, exist_ok=True) # Ensure dir exists
+                    local_audio_path = os.path.join(local_audio_dir, output_filename)
+
+                    print(f"Generating TTS for paragraph {i+1}...")
+                    # Use validated_para for TTS input
+                    generate_tts(validated_para, output_filename, output_dir=local_audio_dir)
+
+                    # Check if file exists after generation
+                    if not os.path.exists(local_audio_path):
+                         raise FileNotFoundError(f"TTS file not found at {local_audio_path} after generation attempt.")
+
+                    # 2. Upload to Vercel Blob
+                    # Add random suffix for uniqueness
+                    blob_pathname = f"audio/{filename_base}_{random.randint(1000, 9999)}.mp3"
+                    upload_url = f"https://blob.vercel-storage.com/{blob_pathname}"
+                    headers = {
+                        "Authorization": f"Bearer {vercel_blob_token}",
+                        "Content-Type": "audio/mpeg",
+                        "x-vercel-blob-client": "python-requests-manual-0.1" # Identify client
+                    }
+
+                    print(f"Uploading {local_audio_path} to Vercel Blob at {blob_pathname}...")
+                    with open(local_audio_path, "rb") as audio_file:
+                        audio_data = audio_file.read()
+
+                    response = requests.put(upload_url, headers=headers, data=audio_data)
+                    response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+
+                    # 3. Get the public URL from response
+                    blob_result = response.json()
+                    audio_url = blob_result.get("url")
+                    if not audio_url:
+                        print(f"Warning: Vercel Blob upload successful but no URL found in response for {blob_pathname}.")
+                    else:
+                        print(f"Vercel Blob upload successful. URL: {audio_url}")
+
+                    # 4. Cleanup local file (optional)
+                    try:
+                        os.remove(local_audio_path)
+                        print(f"Removed temporary local file: {local_audio_path}")
+                    except OSError as e:
+                        print(f"Warning: Could not remove temporary file {local_audio_path}: {e}")
+
+                except FileNotFoundError as e:
+                     print(f"Error during TTS file handling for paragraph {i+1}: {e}")
+                except requests.exceptions.RequestException as e:
+                    print(f"Error uploading audio to Vercel Blob for paragraph {i+1}: {e}")
+                    if hasattr(e, 'response') and e.response is not None:
+                         print(f"Vercel Response Status: {e.response.status_code}")
+                         print(f"Vercel Response Body: {e.response.text}")
+                except Exception as e:
+                    print(f"An unexpected error occurred during audio processing for paragraph {i+1}: {e}")
+
+            elif not vercel_blob_token:
+                 print(f"Skipping audio generation/upload for paragraph {i+1} due to missing BLOB_READ_WRITE_TOKEN.")
+            else: # validated_para was None
+                 print(f"Skipping audio generation/upload for paragraph {i+1} because paragraph validation failed.")
+
+            # Append processed data including the audio_url (which might be None)
             processed_paragraphs.append({
                 "content": linked_para,
-                "raw_content": validated_para, # Store raw for TTS if needed later
-                "questions": para_questions
+                "raw_content": validated_para, # Keep raw content
+                "questions": para_questions,
+                "audio_url": audio_url # Add the URL here
             })
             print("--------------------------")
 
@@ -260,7 +337,11 @@ Include these words in the story: {','.join(required_words)}
 
         step_number_counter = 1
         for para_data in processed_paragraphs:
-            story_obj = Story(content=para_data["content"])
+            # Create Story object, now including the audio URL
+            story_obj = Story(
+                content=para_data["content"],
+                audio=para_data["audio_url"] # Get URL from processed data
+            )
             step = StorylineStep(
                 storyline=storyline,
                 step=step_number_counter, # Correct keyword argument based on orm.py

@@ -11,3 +11,6 @@
 - assignment editor
 - parent view (assignments completed, scores, difficult questions)
 - teacher view (popular content, difficult quesitons, student scores over time)
+
+- make story question buttons bigger
+- submitting questions moves user to next page

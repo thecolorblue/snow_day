@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Chewy, Lexend_Deca } from "next/font/google"; // Import Chewy and Lexend Deca fonts
 import Link from "next/link"; // Import Link
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Instantiate Chewy font
+const chewy = Chewy({
+  variable: "--font-chewy", // Define CSS variable for Chewy
   subsets: ["latin"],
+  weight: "400", // Chewy only supports 400 weight
+});
+// Instantiate Lexend Deca font
+const lexendDeca = Lexend_Deca({
+  variable: "--font-lexend-deca", // Define CSS variable for Lexend Deca
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"], // Specify available weights
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -25,13 +29,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${chewy.variable} ${lexendDeca.variable} antialiased`}> {/* Apply Chewy and Lexend Deca font variables */}
         <nav className="bg-gray-100 p-4 border-b">
           <div className="container mx-auto flex space-x-4">
             <Link href="/" className="text-blue-600 hover:underline">Home</Link>
-            <Link href="/documents" className="text-blue-600 hover:underline">Documents</Link>
+            <Link href="/storylines" className="text-blue-600 hover:underline">Storylines</Link>
           </div>
         </nav>
         <main>{children}</main> {/* Wrap children in main for semantics */}

@@ -19,7 +19,6 @@ export async function submitStorylineStepAction(
     // 1. Extract answers and timing info from FormData
     const answers: AnswerData[] = [];
     const questionIds: number[] = [];
-    const pageLoadTime = parseInt(formData.get('pageLoadTime') as string || '0', 10); // Example if time tracking is added
 
     for (const [key, value] of formData.entries()) {
         if (key.startsWith('question_')) {
@@ -98,7 +97,6 @@ export async function submitStorylineStepAction(
     console.log(`Score: ${score}/${totalQuestions}`);
 
     // 4. Calculate duration (example if time tracking is added)
-    const submissionTime = Date.now();
     const durationSeconds = formData.get('timeElapsed') ? parseFloat(formData.get('timeElapsed') as string) : null; // Use timeElapsed from form data
 
     // 5. Save progress (attempt) to StorylineProgress

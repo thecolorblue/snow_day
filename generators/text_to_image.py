@@ -40,7 +40,13 @@ def generate_image_with_dalle(prompt, api_key):
         return None
 
 # Main execution
+import argparse # Import argparse
+
 if __name__ == "__main__":
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="Generate an image using DALL-E 3 and append a suffix to the prompt.")
+    parser.add_argument("-p", "--prompt_suffix", type=str, default="", help="String to append to the base prompt.")
+    args = parser.parse_args()
     # Get API key from environment variable
     api_key = os.getenv("OPENAI_API_KEY")
     
@@ -50,7 +56,9 @@ if __name__ == "__main__":
         print("Example: export OPENAI_API_KEY='your-api-key-here'")
         exit(1)
     
-    prompt = "80s video game style. A white coffee mug filled with hot chocolate with 3 marshmallows on the top."
+    base_prompt = "80s video game style. A white coffee mug filled with hot chocolate with 3 marshmallows on the top."
+    # Append the suffix if provided
+    prompt = f"{base_prompt} {args.prompt_suffix}".strip()
     
     print(f"Generating image with prompt: {prompt}")
     image = generate_image_with_dalle(prompt, api_key)

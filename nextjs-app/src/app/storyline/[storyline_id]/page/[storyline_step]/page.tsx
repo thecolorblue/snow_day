@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { marked } from 'marked'; // Import marked for Markdown conversion
 import StorylineStepView from './StorylineStepView'; // Client component for rendering
-import { Question, Story, StoryQuestion } from '@prisma/client';
+import { Question, Story, StoryQuestion, StorylineStep, StorylineProgress } from '@prisma/client'; // Import necessary types
 
 // Define the expected shape of the fetched data
 // Includes StorylineStep, its Story, and the Story's Questions via StoryQuestion
@@ -18,6 +18,66 @@ type StorylineStepDetails = {
   };
   // TODO: Add progress data fetching if needed
 };
+
+type StorylineDetails = {
+  steps: number;
+  progress: {
+    [step_number: number]: boolean;
+  }
+}
+
+async function getStorylineDetails(storylineId: number): Promise<StorylineDetails | null> {
+  try {
+    // Fetch all steps for the storyline, including their progress records
+    const storylineSteps = await prisma.storylineStep.findMany({
+      where: {
+        storyline_id: storylineId,
+      },
+      include: {
+        // Include progress to check if any exists for each step
+        storyline_progress: {
+          select: { storyline_progress_id: true }, // Only need to know if records exist
+          take: 1, // Optimize: only need one record to confirm progress exists
+        },
+      },
+      orderBy: {
+        step: 'asc', // Ensure steps are ordered
+      },
+    });
+
+    if (!storylineSteps || storylineSteps.length === 0) {
+      console.warn(`No steps found for storyline ID: ${storylineId}`);
+      return null; // Or return a default state like { steps: 0, progress: {} }
+    }
+
+    const totalSteps = storylineSteps.length;
+    const progress: { [step_number: number]: boolean } = {};
+
+    storylineSteps.forEach(step => {
+      // Check if the storyline_progress array has any elements
+      progress[step.step] = step.storyline_progress.length > 0;
+    });
+
+    return {
+      steps: totalSteps,
+      progress: progress,
+    };
+
+  } catch (error) {
+    console.error(`Error fetching storyline details for storyline ID ${storylineId}:`, error);
+    return null;
+  }
+}
+
+
+// Helper function to shuffle an array (moved inside or defined elsewhere if needed globally)
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+  }
+  return array;
+}
 
 async function getStorylineStepDetails(storylineId: number, storylineStep: number): Promise<StorylineStepDetails | null> {
   try {
@@ -45,34 +105,29 @@ async function getStorylineStepDetails(storylineId: number, storylineStep: numbe
     if (!stepDetails || !stepDetails.story) {
       return null;
     }
-
-    // Type assertion might be needed if Prisma's inferred type isn't precise enough,
-    // but usually includes work well. Let's assume it matches StorylineStepDetails for now.
-    return stepDetails as unknown as StorylineStepDetails;
-
-  } catch (error) {
-    console.error(`Error fetching storyline step details for step ${storylineStep}:`, error);
-    return null;
-  }
-}
-
-interface StoryProgress {
-  storyline_step_id: number;
-  storyline_id: number;
-  storyline_progress_id: number;
-  story_question_id: number;
-  duration: number | null;
-  score: number | null;
-  attempts: number | null;
-  createdAt: Date | null;
-}
-
-async function getStorylineProgress(storylineId: number): Promise<StoryProgress[]> {
-  return prisma.storylineProgress.findMany({
-    where: {
-      storyline_id: storylineId
+// Randomize the order of answers for each question
+if (stepDetails.story.story_question) {
+  stepDetails.story.story_question.forEach(sq => {
+    if (sq.question && sq.question.answers && typeof sq.question.answers === 'string') {
+      const answersArray = sq.question.answers.split(',').map(ans => ans.trim()).filter(ans => ans); // Split, trim, remove empty
+      if (answersArray.length > 1) {
+         const shuffledAnswers = shuffleArray(answersArray);
+         sq.question.answers = shuffledAnswers.join(',');
+      }
     }
   });
+}
+
+// Type assertion might be needed if Prisma's inferred type isn't precise enough,
+// but usually includes work well. Let's assume it matches StorylineStepDetails for now.
+// Note: Ensure StorylineStepDetails type definition aligns with the structure returned by Prisma,
+// especially after modifications like shuffling answers.
+return stepDetails as unknown as StorylineStepDetails; // Consider refining the type assertion if possible
+
+  } catch (error) {
+    console.error(`Error fetching storyline step details for storyline ${storylineId}, step ${storylineStep}:`, error);
+    return null;
+  }
 }
 
 // Define the props for the page component
@@ -94,7 +149,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
 
   const stepDetails = await getStorylineStepDetails(storylineId, storylineStep);
 
-  const storylineProgress = await getStorylineProgress(storylineId);
+  const storylineDetails = await getStorylineDetails(storylineId);
 
   if (!stepDetails) {
     notFound(); // Return 404 if step details are not found
@@ -115,9 +170,9 @@ export default async function StorylineStepPage({ params }: PageProps) {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-evenly">
-        <div><Link href={`/storyline/${storylineId}/page/1`}>Page 1</Link></div>
-        <div><Link href={`/storyline/${storylineId}/page/2`}>Page 2</Link></div>
-        <div><Link href={`/storyline/${storylineId}/page/3`}>Page 3</Link></div>
+        {Object.keys(storylineDetails?.progress || {}).map((v, i)=>(
+          <div key={v} className={storylineDetails?.progress[parseInt(v, 10)] ? 'progress': ''}><Link href={`/storyline/${storylineId}/page/${v}`}>Page {v}</Link></div>
+        ))}
       </div>
       <div className="mb-4">
         <Link href="/storylines" className="text-blue-600 hover:underline">
@@ -131,8 +186,9 @@ export default async function StorylineStepPage({ params }: PageProps) {
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
+        storyAudio={stepDetails.story.audio}
         storyHtml={storyHtml}
-        questions={questions}
+        questions={questions.slice().sort(() => Math.random() - 0.5)}
         // Pass progress data here later
       />
     </div>
