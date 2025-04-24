@@ -76,7 +76,7 @@ export const useStorylineProgress = (
     setAnswers(prev => ({ ...prev, [`question_${questionId}`]: value }));
     // Also update correctness status
     updateCorrectness(questionId, value.trim().toLowerCase() === correctAnswer.trim().toLowerCase());
-  }, [updateCorrectness]);
+  }, [incrementAttempts, updateCorrectness]);
 
   // Function to get correctness status for a specific question
   const getCorrectnessStatus = useCallback((questionId: number): boolean | null => {

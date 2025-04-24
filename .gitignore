@@ -7,3 +7,5 @@ results.db
 .env
 
 env
+.vercel
+.env*.local

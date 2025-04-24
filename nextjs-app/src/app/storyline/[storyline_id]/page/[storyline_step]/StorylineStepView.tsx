@@ -28,6 +28,7 @@ interface StorylineStepViewProps {
   storylineStep: number;
   storyId: number;
   storyHtml: string; // Already parsed HTML
+  storyAudio: string | null;
   questions: Question[];
   // Add progress props later
   // Add potential props for initial state if needed
@@ -38,6 +39,7 @@ export default function StorylineStepView({
  storylineId,
   storylineStep,
   storyHtml,
+  storyAudio,
   questions,
 }: StorylineStepViewProps) {
   const { progress, answers, pageLoadTime, isValid, handleInputChange, getCorrectnessStatus } = useStorylineProgress(questions);
@@ -69,7 +71,7 @@ export default function StorylineStepView({
      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
      if (SpeechRecognitionAPI) {
        const recognitionInstance = new SpeechRecognitionAPI();
-       const grammar = "#JSGF V1.0; grammar letters; public <letter> = a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z ;";
+      //  const grammar = "#JSGF V1.0; grammar letters; public <letter> = a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z ;";
        // const speechRecognitionList = new SpeechGrammarList(); // Standard API
        // speechRecognitionList.addFromString(grammar, 1);
        // recognitionInstance.grammars = speechRecognitionList; // Standard API
@@ -119,7 +121,6 @@ export default function StorylineStepView({
 
       // Handle the result from the server action
       console.log("Submission Result:", result);
-           alert(`Submission successful! Score: ${result.score}/${result.totalQuestions}. ${result.message}`);
            // Trigger confetti!
            if (result.score > 0) {
                 confetti({
@@ -136,90 +137,6 @@ export default function StorylineStepView({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // --- Child Components for Interactive Elements ---
- 
-  // Component to play the entire story
-  const PlayStoryButton = ({ storyContentId }: { storyContentId: string }) => {
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
-    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
- 
-    const toggleSpeech = useCallback(() => {
-      if (!window.speechSynthesis) {
-        console.warn('Speech synthesis not supported.');
-        return;
-      }
- 
-      const textElement = document.getElementById(storyContentId);
-      const textToSpeak = textElement?.textContent || '';
- 
-      if (!utteranceRef.current) {
-        utteranceRef.current = new SpeechSynthesisUtterance(textToSpeak);
-        utteranceRef.current.lang = 'en-US';
-        utteranceRef.current.onend = () => {
-          setIsSpeaking(false);
-          setIsPaused(false);
-          utteranceRef.current = null; // Reset utterance
-          console.log('Speech finished');
-        };
-        utteranceRef.current.onpause = () => {
-          setIsPaused(true);
-          setIsSpeaking(false); // Speaking is false when paused
-          console.log('Speech paused');
-        };
-         utteranceRef.current.onresume = () => {
-          setIsPaused(false);
-          setIsSpeaking(true);
-          console.log('Speech resumed');
-        };
-        utteranceRef.current.onerror = (event) => {
-          console.error('Speech synthesis error:', event.error);
-          setIsSpeaking(false);
-          setIsPaused(false);
-          utteranceRef.current = null;
-        };
-      }
- 
-      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause(); // Pause if speaking
-      } else if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume(); // Resume if paused
-      } else {
-        window.speechSynthesis.cancel(); // Clear queue before starting new
-        window.speechSynthesis.speak(utteranceRef.current); // Speak if not speaking/paused
-        setIsSpeaking(true);
-        setIsPaused(false);
-      }
-    }, [storyContentId]);
- 
-    // Cleanup on unmount
-    useEffect(() => {
-      return () => {
-        if (window.speechSynthesis?.speaking) {
-          window.speechSynthesis.cancel();
-        }
-      };
-    }, []);
- 
-    let buttonText = 'Play Story';
-    let icon = <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>; // Play icon
- 
-    if (isSpeaking && !isPaused) {
-      buttonText = 'Pause Story';
-      icon = <svg slot="icon" viewBox="0 0 48 48"><path d="M28.5 38v-28H38v28Zm-18 0v-28h9.5v28Z"/></svg>; // Pause icon
-    } else if (isPaused) {
-      buttonText = 'Resume Story';
-      icon = <svg slot="icon" viewBox="0 0 48 48"><path d="M6 40V8l38 16Zm3-4.65L36.2 24 9 12.5v8.4L21.1 24 9 27Z"/></svg>; // Play icon (resume uses play)
-    }
- 
-    return (
-      React.createElement('md-filled-tonal-button' as any, { className: "button-play mb-2", onClick: toggleSpeech },
-        icon,
-        buttonText
-      )
-    );
   };
  
   // Component to play a single word or phrase
@@ -340,13 +257,17 @@ export default function StorylineStepView({
   // };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex flex-col md:flex-row gap-4 storyline-step-view-font"> {/* Added class for specific font */}
       {/* Story Panel */}
       <div className="md:w-1/2 space-y-4">
         <div className="card bg-white p-4 rounded shadow">
                    <h2 className="text-xl font-semibold mb-2">Story</h2>
                    {/* Use the PlayStoryButton component */}
-                   <PlayStoryButton storyContentId="story-content" />
+                   
+                  {storyAudio && <audio controls>
+                    <source src={storyAudio} type="audio/mpeg"></source>
+                    Your browser does not support the audio element.
+                  </audio>}
           {/* Render story HTML */}
           <div
             id="story-content"

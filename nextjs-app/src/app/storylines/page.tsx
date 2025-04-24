@@ -3,12 +3,20 @@ import prisma from '@/lib/prisma'; // Import the Prisma client instance
 
 // Define the expected shape of the data returned by the Prisma query (using snake_case from schema)
 type StorylineQueryResult = {
-  storyline_id: number;       // Corrected: snake_case
-  original_request: string | null; // Corrected: snake_case
+  storyline_id: number;
+  original_request: string | null;
   status: string;
-  _count: {
-    storyline_step: number; // Corrected: relation name is storyline_step
-  };
+  storyline_step: {
+    story: {
+      content: string;
+      story_question: { // Include story questions
+        question: { // Include the related question
+          correct: string; // Select the question's ID
+        };
+      }[];
+    };
+    storyline_progress: { storyline_progress_id: number }[]; // Still need progress info
+  }[];
 };
 
 // Define the shape of the data used by the component after mapping
@@ -17,6 +25,9 @@ type StorylineViewData = {
   original_request: string | null;
   status: string;
   step_count: number;
+  progress: number;
+  first_step_content_preview: string;
+  unique_questions: Set<string>; // Add unique question count
 };
 
 // Fetch data directly in the Server Component
@@ -24,16 +35,32 @@ async function getStorylines() {
   // Fetch the storylines with selected fields and count of steps
   // Fetch the storylines using correct snake_case field names
   const storylines: StorylineQueryResult[] = await prisma.storyline.findMany({
-    select: {
-      storyline_id: true,       // Corrected: snake_case
-      original_request: true, // Corrected: snake_case
-      status: true,
-      _count: {
-        select: { storyline_step: true }, // Corrected: relation name
+    include: {
+      storyline_step: { // Include all steps
+        include: {
+          story: {
+            include: { // Change select to include to get nested relations
+              story_question: { // Include the story questions
+                include: {
+                  question: { // Include the actual question
+                    select: { correct: true } // Select the question's ID
+                  }
+                }
+              }
+            }
+          },
+          storyline_progress: { // Still need progress info for calculations
+            select: { storyline_progress_id: true },
+            take: 1,
+          },
+        },
+        orderBy: { // Ensure steps are ordered correctly if needed elsewhere, though map accesses [0]
+          storyline_step_id: 'asc',
+        }
       },
     },
     orderBy: {
-      storyline_id: 'desc',   // Corrected: snake_case
+      storyline_id: 'desc', // Keep storylines ordered by ID desc
     },
   });
 
@@ -43,12 +70,33 @@ async function getStorylines() {
   // The input 'storyline' here has properties: storylineId, originalRequest, status, _count
   // Map the raw Prisma result to the structure needed by the component
   // Map the raw Prisma result using correct snake_case field names
-  return storylines.map((storyline: StorylineQueryResult): StorylineViewData => ({
-    storyline_id: storyline.storyline_id,         // Corrected: snake_case
-    original_request: storyline.original_request, // Corrected: snake_case
-    status: storyline.status,
-    step_count: storyline._count.storyline_step,  // Corrected: relation name
-  }));
+  // Map the raw Prisma result, calculating step_count and progress
+  return storylines.map((storyline: StorylineQueryResult): StorylineViewData => {
+    const step_count = storyline.storyline_step.length;
+    const progress = storyline.storyline_step.filter(step => step.storyline_progress.length > 0).length;
+    const firstStepContent = storyline.storyline_step[0]?.story?.content ?? '';
+    const preview = firstStepContent.split('\n')[0]; // Get first line
+    const truncatedPreview = preview.length > 100 ? preview.substring(0, 97) + '...' : preview; // Truncate if long
+
+    const uniqueQuestions = new Set<string>();
+    storyline.storyline_step.forEach(step => {
+      step.story?.story_question?.forEach(sq => {
+        if (sq.question) {
+          uniqueQuestions.add(sq.question.correct);
+        }
+      });
+    });
+
+    return {
+      storyline_id: storyline.storyline_id,
+      original_request: storyline.original_request,
+      status: storyline.status,
+      step_count: step_count,
+      progress: progress,
+      first_step_content_preview: truncatedPreview || 'No content',
+      unique_questions: uniqueQuestions, // Add the count
+    };
+  });
 }
 
 // Helper function to truncate and format the request JSON
@@ -98,27 +146,35 @@ export default async function StorylinesDashboard() {
         <table className="min-w-full bg-white">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Steps</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request (Preview)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '200px' }}>Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {storylines.map((storyline) => (
+            {storylines.filter(storyline => storyline.progress !== storyline.step_count).map((storyline) => (
               <tr key={storyline.storyline_id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{storyline.storyline_id}</td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm ${getStatusClass(storyline.status)}`}>{storyline.status}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{storyline.step_count}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  <pre className="whitespace-pre-wrap break-all font-mono text-xs">{formatRequest(storyline.original_request)}</pre>
+                <td className="px-6 py-4 whitespace-normal text-sm text-gray-900">{storyline.first_step_content_preview}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style={{ minWidth: '200px' }}>
+                  <div className="flex items-center">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mr-2">
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full"
+                        style={{ width: `${(storyline.progress / storyline.step_count) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span>{storyline.progress}/{storyline.step_count}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                  {[...storyline.unique_questions].join(', ')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {/* Adjust link as needed - maybe link to first step if steps > 0 */}
                   {storyline.step_count > 0 ? (
                      <Link href={`/storyline/${storyline.storyline_id}/page/1`}>
-                       <span className="text-indigo-600 hover:text-indigo-900 cursor-pointer">View First Step</span>
+                       <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Start</button>
                      </Link>
                   ) : (
                     <span className="text-gray-400">No Steps</span>
@@ -128,7 +184,7 @@ export default async function StorylinesDashboard() {
             ))}
             {storylines.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No storylines found.</td>
+                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No storylines found.</td>
               </tr>
             )}
           </tbody>
