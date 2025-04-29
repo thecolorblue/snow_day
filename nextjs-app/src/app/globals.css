@@ -42,3 +42,9 @@ body {
 .storyline-step-view-font {
   font-family: var(--font-lexend-deca);
 }
+
+.question-play-word {
+  position: absolute;
+  top: 39%;
+  right: 0px;
+}

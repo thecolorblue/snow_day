@@ -5,6 +5,8 @@ import { Question } from '@prisma/client';
 import { submitStorylineStepAction } from './actions'; // Import the server action
 import confetti from 'canvas-confetti'; // Import confetti
 import SelectQuestion from './SelectQuestion';
+import DragDropQuestion from './DragDropQuestion';
+import QuestionRenderer from './QuestionRenderer'; // Import the new renderer component
 import { useStorylineProgress } from '@/hooks/useStorylineProgress';
 
 // --- TypeScript Declarations for Custom Elements ---
@@ -158,7 +160,7 @@ export default function StorylineStepView({
     }, [textToSpeak]);
  
     return (
-      React.createElement('md-filled-tonal-icon-button' as any, { className: "button-play-word", onClick: speakText, style: { '--md-filled-tonal-icon-button-container-width': '32px', '--md-filled-tonal-icon-button-container-height': '32px' } },
+      React.createElement('md-filled-tonal-icon-button' as any, { className: "button-play-word", onClick: speakText, style: { '--md-filled-tonal-icon-button-container-width': '48px', '--md-filled-tonal-icon-button-container-height': '48px' } },
          React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", height: "20px", viewBox: "0 0 24 24", width: "20px", fill: "currentColor" },
            React.createElement('path', { d: "M0 0h24v24H0z", fill: "none" }),
            React.createElement('path', { d: "M8 5v14l11-7z" })
@@ -282,40 +284,24 @@ export default function StorylineStepView({
       {/* Quiz Panel */}
       <div className="md:w-1/2">
         <form onSubmit={handleSubmit} className="card bg-white p-4 rounded shadow space-y-4">
-          <h2 className="text-xl font-semibold mb-2">Quiz</h2>
           {questions.map((q) => (
             <div
               key={q.id}
-              className={`border p-3 rounded bg-gray-50 ${
+              className={`border relative p-3 rounded bg-gray-50 ${
                 getCorrectnessStatus(q.id) === true ? 'correct bg-green-100 border-green-300' :
                 getCorrectnessStatus(q.id) === false ? 'wrong bg-red-100 border-red-300' : ''
               }`} // Add dynamic classes
             >
-              <p className="mb-2 font-medium"><PlayWordButton textToSpeak={q.correct} /></p>
+              <p className="mb-2 font-medium question-play-word"><PlayWordButton textToSpeak={q.correct} /></p>
               <div className="space-y-2">
-                {q.type === 'input' && (
-                                   <div className="flex items-center space-x-2">
-                                     <ListenButton onTranscript={(transcript) => handleInputChange(q.id, transcript, q.correct)} />
-                    <input
-                      type="text"
-                      id={`q_${q.id}_input`}
-                      name={`question_${q.id}`} // Consistent naming for form data
-                      required
-                      autoComplete="off"
-                      value={answers[`question_${q.id}`] || ''}
-                      onChange={(e) => handleInputChange(q.id, e.target.value, q.correct)}
-                      // data-answer={q.correct} // For client-side validation if needed
-                      className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    />
-                  </div>
-                )}
-                {q.type === 'select' && (
-                  <SelectQuestion
-                    question={q}
-                    currentAnswer={answers[`question_${q.id}`]}
-                    handleInputChange={handleInputChange}
-                  />
-                )}
+                {/* Use QuestionRenderer to handle different question types */}
+                <QuestionRenderer
+                  question={q}
+                  currentAnswer={answers[`question_${q.id}`]}
+                  handleInputChange={handleInputChange}
+                  // Note: If 'input' type needs ListenButton, QuestionRenderer needs adjustment
+                  // or ListenButton needs to be passed down/refactored.
+                />
               </div>
             </div>
           ))}
