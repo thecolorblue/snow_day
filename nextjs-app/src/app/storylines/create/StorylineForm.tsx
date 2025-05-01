@@ -1,6 +1,7 @@
 "use client"; // Mark this as a Client Component
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react'; // Add useCallback
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'; // Import hooks
 import { Question, Student } from '@prisma/client'; // Import Question and Student types
 import { createStorylineAction } from './actions'; // Import the Server Action
 
@@ -13,6 +14,7 @@ interface StorylineFormProps {
   interests: string[];
   friends: string[];
   students: Student[]; // Add students prop
+  classrooms: string[];
 }
 
 // Helper function for random selection in single-select dropdowns
@@ -37,8 +39,13 @@ export default function StorylineForm({
   styles,
   interests: staticInterests, // Renamed from props
   friends: staticFriends,     // Renamed from props
+  classrooms,
   students,
 }: StorylineFormProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   // State for form fields - initialize as needed
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<string>('');
@@ -46,7 +53,8 @@ export default function StorylineForm({
   const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(''); // State for selected student ID
+  // Initialize state from URL search param if present
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>(searchParams.get('classroom_name') || '');
   // const [genTtl, setGenTtl] = useState<boolean>(true); // State for the checkbox if needed
 
   // Prepare options for multi-select randomizer
@@ -56,52 +64,51 @@ export default function StorylineForm({
 
 // The manual handleSubmit function was removed in the previous step.
 // We will now update the form tag to use the server action.
-  // Handle student selection change
-  const handleStudentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const studentId = e.target.value;
-    setSelectedStudentId(studentId);
+  // Handle classroom selection change and update URL
+  const handleClassroomChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const classroom = e.target.value;
+    setSelectedClassroomId(classroom);
 
-    if (studentId) {
-      // Find the selected student (convert ID from string to number for comparison)
-      const student = students.find(s => s.id === parseInt(studentId, 10));
-      if (student) {
-        // Populate form fields with the selected student's data
-        setSelectedGenre(student.genre);
-        setSelectedLocation(student.location);
-        setSelectedStyle(student.style);
-        // Ensure arrays are handled correctly, even if null/undefined in data
-        setSelectedInterests(student.interests ?? []);
-        setSelectedFriends(student.friends ?? []);
-      }
+    // Create new search params instance
+    const current = new URLSearchParams(Array.from(searchParams.entries())); // Create mutable copy
+
+    if (!classroom) {
+      // If '-- Select a Classroom --' is chosen, remove the param
+      current.delete('classroom_name');
     } else {
-      // Reset fields if "-- Select a Student --" is chosen
-      setSelectedGenre('');
-      setSelectedLocation('');
-      setSelectedStyle('');
-      setSelectedInterests([]);
-      setSelectedFriends([]);
+      // Otherwise, set the param to the selected classroom
+      current.set('classroom_name', classroom);
     }
-  };
+
+    // Cast to string
+    const search = current.toString();
+    // or const query = `${'?'.repeat(search.length && 1)}${search}`;
+    const query = search ? `?${search}` : "";
+
+    // Update the URL without scrolling to the top
+    router.replace(`${pathname}${query}`, { scroll: false });
+
+  }, [searchParams, pathname, router]);
 
   // The form uses a Server Action (`createStorylineAction`), so no manual handleSubmit needed here.
 
   return (
     <form action={createStorylineAction} className="bg-white p-6 rounded-lg shadow-md space-y-6">
-      {/* Student Selection Dropdown */}
+      {/* Classroom Selection Dropdown */}
       <div>
-        <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-1">Select Student (Optional):</label>
+        <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-1">Select Classroom (Optional):</label>
         <select
           id="student"
           name="student_id" // This name might be used by the server action if needed
-          value={selectedStudentId}
-          onChange={handleStudentChange}
+          value={selectedClassroomId}
+          onChange={handleClassroomChange}
           className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
         >
-          <option value="">-- Select a Student --</option>
-          {students.map(student => (
-            // Display student ID. Consider adding a name field to the Student model for better display.
-            <option key={student.id} value={student.id.toString()}> {/* Ensure value is string */}
-              Student ID: {student.id}
+          <option value="">-- Select a Classroom --</option>
+          {classrooms.map((classroom) => (
+            // Display classroom ID. Consider adding a name field to the Classroom model for better display.
+            <option key={classroom} value={classroom}> {/* Ensure value is string */}
+              Classroom ID: {classroom}
             </option>
           ))}
         </select>
