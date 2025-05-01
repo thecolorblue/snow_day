@@ -12,6 +12,28 @@ interface QuestionLoaderProps {
   friends: string[];
 }
 
+async function getClassrooms(): Promise<string[]> {
+  console.log("Fetching unique classrooms...");
+  try {
+    const classroomsData = await prisma.question.findMany({
+      select: {
+        classroom: true, // Select only the classroom field
+      },
+      distinct: ['classroom'], // Get distinct classroom values
+      orderBy: {
+        classroom: 'asc', // Order the results alphabetically
+      },
+    });
+    // Extract the classroom strings from the result objects, filtering out any nulls just in case
+    const classrooms = classroomsData.map(q => q.classroom).filter((c): c is string => c !== null);
+    console.log(`Found ${classrooms.length} unique classrooms.`);
+    return classrooms;
+  } catch (error) {
+    console.error("Error fetching unique classrooms:", error);
+    return []; // Return empty array on error
+  }
+}
+
 // Fetch questions based on classroom_name search parameter
 async function getQuestions(searchParams?: { [key: string]: string | string[] | undefined }): Promise<Question[]> {
   // Directly use searchParams.classroom_name in the query logic
@@ -69,9 +91,10 @@ export default async function QuestionLoader({
   friends: staticFriends,     // Rename to avoid conflict
 }: QuestionLoaderProps) {
   // Fetch questions and students in parallel
-  const [questions, students] = await Promise.all([
+  const [questions, students, classrooms] = await Promise.all([
     getQuestions(searchParams),
-    getStudents()
+    getStudents(),
+    getClassrooms(),
   ]);
 
   // Render the form, passing the fetched questions and static lists
@@ -79,6 +102,7 @@ export default async function QuestionLoader({
     <StorylineForm
       questions={questions}
       students={students} // Pass students to the form
+      classrooms={classrooms}
       genres={genres}
       locations={locations}
       styles={styles}
