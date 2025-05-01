@@ -8,14 +8,17 @@ interface STTQuestionProps {
   question: Question;
   currentAnswer: string | undefined;
   handleInputChange: (questionId: number, value: string, correctAnswer: string) => void;
+  getCorrectnessStatus: (questionId: number) => boolean | null; // <-- Added prop
 }
 
 const STTQuestion: React.FC<STTQuestionProps> = ({
   question,
   currentAnswer,
   handleInputChange,
+  getCorrectnessStatus, // <-- Destructure prop
 }) => {
   const [inputValue, setInputValue] = useState<string>(currentAnswer || '');
+  const isCorrect = getCorrectnessStatus(question.id); // <-- Get correctness status
   const grammar =
   "#JSGF V1.0; grammar alphabet; public <letters> = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z ;";
   const speechRecognitionList = new webkitSpeechGrammarList();
@@ -26,6 +29,7 @@ const STTQuestion: React.FC<STTQuestionProps> = ({
     // interimResult, // Not needed for final result processing
     isRecording,
     results,
+    setResults,
     startSpeechToText,
     stopSpeechToText,
   } = useSpeechToText({
@@ -60,6 +64,7 @@ const STTQuestion: React.FC<STTQuestionProps> = ({
       stopSpeechToText();
     } else {
       setInputValue(''); // Clear previous input before starting new recognition
+      setResults([]);
       startSpeechToText();
     }
   };
@@ -71,6 +76,12 @@ const STTQuestion: React.FC<STTQuestionProps> = ({
     // If manual input should also trigger validation/saving:
     // handleInputChange(question.id, manualValue.replace(/\s+/g, ''), question.correct || '');
   };
+
+  useEffect(() => {
+    if (isCorrect) {
+      stopSpeechToText();
+    }
+  }, [isCorrect]);
 
   // The hook handles browser compatibility via the error state
   if (error) {

@@ -18,6 +18,7 @@ interface QuestionRendererProps {
   question: Question;
   currentAnswer: string | undefined;
   handleInputChange: (questionId: number, value: string, correctAnswer: string) => void;
+  getCorrectnessStatus: (questionId: number) => boolean | null; // Added prop
   // If ListenButton/PlayWordButton are needed, they might need to be passed as props or refactored
 }
 
@@ -25,6 +26,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   question: q, // Rename prop locally for consistency with original code
   currentAnswer,
   handleInputChange,
+  getCorrectnessStatus, // Destructure prop
 }) => {
   // Removed state and effect for random rendering
 
@@ -79,6 +81,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         question={q}
         currentAnswer={currentAnswer}
         handleInputChange={handleInputChange}
+        getCorrectnessStatus={getCorrectnessStatus} // Pass prop down
       />
     );
   }
