@@ -1,9 +1,15 @@
 "use client"; // Needs to be a client component due to randomization and potential hooks in children
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Question } from '@prisma/client';
-import SelectQuestion from './SelectQuestion';
-import DragDropQuestion from './DragDropQuestion';
+import dynamic from 'next/dynamic'; // Import dynamic
+
+// Dynamically import STTQuestion only on the client-side
+const STTQuestion = dynamic(() => import('./STTQuestion'), {
+  ssr: false,
+  loading: () => <p>Loading speech recognition...</p> // Optional loading state
+});
+// Removed SelectQuestion and DragDropQuestion imports
 // Assuming ListenButton and PlayWordButton might be needed if 'input' type is handled here too
 // import { ListenButton, PlayWordButton } from './StorylineStepView'; // This won't work directly, need to refactor/pass components if needed
 
@@ -20,17 +26,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   currentAnswer,
   handleInputChange,
 }) => {
-  // State to store the stable random choice for dragdrop type
-  const [renderAsDragDrop, setRenderAsDragDrop] = useState<boolean | null>(null);
-
-  // Make the random choice only once when the question ID changes
-  useEffect(() => {
-    if (q.type === 'select') {
-      setRenderAsDragDrop(Math.random() < 0.5);
-    } else {
-      setRenderAsDragDrop(null); // Reset if type changes
-    }
-  }, [q.id, q.type]); // Dependency array ensures this runs only when the question changes
+  // Removed state and effect for random rendering
 
   // Render based on question type
   if (q.type === 'input') {
@@ -77,29 +73,14 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
 //   }
 
   if (q.type === 'select') {
-    // Wait until the random choice state is set
-    if (renderAsDragDrop === null) {
-      return null; // Or a loading indicator
-    }
-
-    // Use the stable state value for rendering
-    if (renderAsDragDrop) {
-      return (
-        <DragDropQuestion
-          question={q}
-          currentAnswer={currentAnswer}
-          handleInputChange={handleInputChange}
-        />
-      );
-    } else {
-      return (
-        <SelectQuestion
-          question={q}
-          currentAnswer={currentAnswer}
-          handleInputChange={handleInputChange}
-        />
-      );
-    }
+    // Always render STTQuestion for 'select' type
+    return (
+      <STTQuestion
+        question={q}
+        currentAnswer={currentAnswer}
+        handleInputChange={handleInputChange}
+      />
+    );
   }
 
   // Fallback for unknown question types
