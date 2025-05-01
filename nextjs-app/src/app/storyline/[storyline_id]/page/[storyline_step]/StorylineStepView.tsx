@@ -292,12 +292,13 @@ export default function StorylineStepView({
                 getCorrectnessStatus(q.id) === false ? 'wrong bg-red-100 border-red-300' : ''
               }`} // Add dynamic classes
             >
-              <p className="mb-2 font-medium question-play-word"><PlayWordButton textToSpeak={q.correct} /></p>
+              {/* <p className="mb-2 font-medium question-play-word"><PlayWordButton textToSpeak={q.correct} /></p> */}
               <div className="space-y-2">
                 {/* Use QuestionRenderer to handle different question types */}
                 <QuestionRenderer
                   question={q}
                   currentAnswer={answers[`question_${q.id}`]}
+                  getCorrectnessStatus={getCorrectnessStatus} // Pass down the function
                   handleInputChange={handleInputChange}
                   // Note: If 'input' type needs ListenButton, QuestionRenderer needs adjustment
                   // or ListenButton needs to be passed down/refactored.
