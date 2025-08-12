@@ -1,0 +1,160 @@
+graph TD
+    subgraph "External Packages"
+        Next["next"]
+        NextFont["next/font/google"]
+        NextLink["next/link"]
+        NextImage["next/image"]
+        VercelBlob["@vercel/blob"]
+        NextServer["next/server"]
+        PrismaClient["@prisma/client"]
+        NextNavigation["next/navigation"]
+        Marked["marked"]
+        React["react"]
+        NextDynamic["next/dynamic"]
+        CanvasConfetti["canvas-confetti"]
+        ReactHookSpeechToText["react-hook-speech-to-text"]
+    end
+
+    subgraph "Project Files"
+        AppLayout["app/layout.tsx"]
+        AppPage["app/page.tsx"]
+        ApiDocUpload["app/api/docs/upload/route.ts"]
+        ApiHealth["app/api/health/route.ts"]
+        DocsPage["app/documents/page.tsx"]
+        DocsUploadPage["app/documents/upload/page.tsx"]
+        StorylineStepActions["app/storyline/[...]/actions.ts"]
+        StorylineStepPage["app/storyline/[...]/page.tsx"]
+        QuestionRenderer["app/storyline/[...]/QuestionRenderer.tsx"]
+        SelectQuestion["app/storyline/[...]/SelectQuestion.tsx"]
+        StorylineStepView["app/storyline/[...]/StorylineStepView.tsx"]
+        STTQuestion["app/storyline/[...]/STTQuestion.tsx"]
+        StorylinesPage["app/storylines/page.tsx"]
+        StorylinesCreateActions["app/storylines/create/actions.ts"]
+        StorylinesCreatePage["app/storylines/create/page.tsx"]
+        StorylinesCreateQuestionLoader["app/storylines/create/QuestionLoader.tsx"]
+        StorylinesCreateStorylineForm["app/storylines/create/StorylineForm.tsx"]
+        HooksUseStorylineProgress["hooks/useStorylineProgress.ts"]
+        LibPrisma["lib/prisma.ts"]
+        TypesMaterialWeb["types/material-web.d.ts"]
+    end
+
+    %% Imports and Exports
+
+    %% app/layout.tsx
+    Next -- "Metadata" --> AppLayout
+    NextFont -- "Chewy, Lexend_Deca" --> AppLayout
+    NextLink -- "Link" --> AppLayout
+    AppLayout -- "export metadata, RootLayout" --> Next
+
+    %% app/page.tsx
+    NextImage -- "Image" --> AppPage
+    AppPage -- "export Home" --> Next
+
+    %% app/api/documents/upload/route.ts
+    VercelBlob -- "put" --> ApiDocUpload
+    NextServer -- "NextResponse" --> ApiDocUpload
+    LibPrisma -- "prisma" --> ApiDocUpload
+    ApiDocUpload -- "export POST" --> NextServer
+
+    %% app/api/health/route.ts
+    NextServer -- "NextResponse" --> ApiHealth
+    ApiHealth -- "export GET" --> NextServer
+
+    %% app/documents/page.tsx
+    LibPrisma -- "prisma" --> DocsPage
+    PrismaClient -- "Document" --> DocsPage
+    NextLink -- "Link" --> DocsPage
+    DocsPage -- "export DocumentsPage" --> Next
+
+    %% app/documents/upload/page.tsx
+    React -- "Suspense" --> DocsUploadPage
+    DocsUploadPage -- "export UploadDocumentPage" --> Next
+
+    %% app/storyline/[...]/actions.ts
+    LibPrisma -- "prisma" --> StorylineStepActions
+    StorylineStepActions -- "export submitStorylineStepAction" --> StorylineStepView
+
+    %% app/storyline/[...]/page.tsx
+    NextLink -- "Link" --> StorylineStepPage
+    NextNavigation -- "notFound" --> StorylineStepPage
+    LibPrisma -- "prisma" --> StorylineStepPage
+    Marked -- "marked" --> StorylineStepPage
+    StorylineStepView -- "StorylineStepView" --> StorylineStepPage
+    PrismaClient -- "Question, Story, ..." --> StorylineStepPage
+    StorylineStepPage -- "export StorylineStepPage" --> Next
+
+    %% app/storyline/[...]/QuestionRenderer.tsx
+    React -- "React, useState" --> QuestionRenderer
+    PrismaClient -- "Question" --> QuestionRenderer
+    NextDynamic -- "dynamic" --> QuestionRenderer
+    SelectQuestion -- "SelectQuestion" --> QuestionRenderer
+    STTQuestion -- "STTQuestion (dynamic)" --> QuestionRenderer
+    QuestionRenderer -- "export QuestionRenderer" --> StorylineStepView
+
+    %% app/storyline/[...]/SelectQuestion.tsx
+    React -- "React" --> SelectQuestion
+    PrismaClient -- "Question" --> SelectQuestion
+    SelectQuestion -- "export SelectQuestion" --> QuestionRenderer
+    SelectQuestion -- "export SelectQuestion" --> StorylineStepView
+
+    %% app/storyline/[...]/StorylineStepView.tsx
+    React -- "React, useState, ..." --> StorylineStepView
+    PrismaClient -- "Question" --> StorylineStepView
+    StorylineStepActions -- "submitStorylineStepAction" --> StorylineStepView
+    CanvasConfetti -- "confetti" --> StorylineStepView
+    QuestionRenderer -- "QuestionRenderer" --> StorylineStepView
+    HooksUseStorylineProgress -- "useStorylineProgress" --> StorylineStepView
+    StorylineStepView -- "export StorylineStepView" --> StorylineStepPage
+
+    %% app/storyline/[...]/STTQuestion.tsx
+    React -- "React, useState, useEffect" --> STTQuestion
+    PrismaClient -- "Question" --> STTQuestion
+    ReactHookSpeechToText -- "useSpeechToText" --> STTQuestion
+    STTQuestion -- "export STTQuestion" --> QuestionRenderer
+
+    %% app/storylines/page.tsx
+    NextLink -- "Link" --> StorylinesPage
+    LibPrisma -- "prisma" --> StorylinesPage
+    StorylinesPage -- "export StorylinesDashboard" --> Next
+
+    %% app/storylines/create/actions.ts
+    NextNavigation -- "redirect" --> StorylinesCreateActions
+    LibPrisma -- "prisma" --> StorylinesCreateActions
+    PrismaClient -- "Question" --> StorylinesCreateActions
+    StorylinesCreateActions -- "export createStorylineAction" --> StorylinesCreateStorylineForm
+
+    %% app/storylines/create/page.tsx
+    NextLink -- "Link" --> StorylinesCreatePage
+    StorylinesCreateQuestionLoader -- "QuestionLoader" --> StorylinesCreatePage
+    StorylinesCreatePage -- "export CreateStorylinePage" --> Next
+
+    %% app/storylines/create/QuestionLoader.tsx
+    LibPrisma -- "prisma" --> StorylinesCreateQuestionLoader
+    PrismaClient -- "Question, Student" --> StorylinesCreateQuestionLoader
+    StorylinesCreateStorylineForm -- "StorylineForm" --> StorylinesCreateQuestionLoader
+    StorylinesCreateQuestionLoader -- "export QuestionLoader" --> StorylinesCreatePage
+
+    %% app/storylines/create/StorylineForm.tsx
+    React -- "React, useState, useCallback" --> StorylinesCreateStorylineForm
+    NextNavigation -- "useRouter, usePathname, useSearchParams" --> StorylinesCreateStorylineForm
+    PrismaClient -- "Question, Student" --> StorylinesCreateStorylineForm
+    StorylinesCreateActions -- "createStorylineAction" --> StorylinesCreateStorylineForm
+    StorylinesCreateStorylineForm -- "export StorylineForm" --> StorylinesCreateQuestionLoader
+
+    %% hooks/useStorylineProgress.ts
+    React -- "useState, useCallback, ..." --> HooksUseStorylineProgress
+    PrismaClient -- "Question" --> HooksUseStorylineProgress
+    HooksUseStorylineProgress -- "export useStorylineProgress" --> StorylineStepView
+
+    %% lib/prisma.ts
+    PrismaClient -- "PrismaClient" --> LibPrisma
+    LibPrisma -- "export prisma" --> ApiDocUpload
+    LibPrisma -- "export prisma" --> DocsPage
+    LibPrisma -- "export prisma" --> StorylineStepActions
+    LibPrisma -- "export prisma" --> StorylineStepPage
+    LibPrisma -- "export prisma" --> StorylinesPage
+    LibPrisma -- "export prisma" --> StorylinesCreateActions
+    LibPrisma -- "export prisma" --> StorylinesCreateQuestionLoader
+
+    %% types/material-web.d.ts
+    TypesMaterialWeb -- "export {}" --> StorylineStepView
