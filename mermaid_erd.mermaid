@@ -1,0 +1,74 @@
+erDiagram
+    Story {
+        Integer id PK
+        Text content
+        Text audio
+    }
+
+    Question {
+        Integer id PK
+        Text type
+        Text question
+        Text key
+        Text correct
+        Text answers
+        Text classroom
+    }
+
+    StoryQuestion {
+        Integer id PK
+        Integer story_id FK
+        Integer question_id FK
+    }
+
+    Storyline {
+        Integer storyline_id PK
+        Text original_request
+        String status
+    }
+
+    StorylineStep {
+        Integer storyline_step_id PK
+        Integer storyline_id FK
+        Integer step
+        Integer story_id FK
+    }
+
+    StorylineProgress {
+        Integer storyline_progress_id PK
+        Integer storyline_id FK
+        Integer storyline_step_id FK
+        Integer story_question_id FK
+        Integer duration
+        Integer score
+        Integer attempts
+        DateTime created_at
+    }
+
+    TaskQueue {
+        Integer id PK
+        String title
+        Enum status
+        JSON context
+        Integer priority
+        DateTime created_at
+        DateTime updated_at
+    }
+
+    Student {
+        Integer id PK
+        String genre
+        String location
+        String style
+        JSON interests
+        JSON friends
+        DateTime created_at
+    }
+
+    Story ||--o{ StoryQuestion : "has many"
+    Question ||--o{ StoryQuestion : "has many"
+    Storyline ||--o{ StorylineStep : "has many"
+    Storyline ||--o{ StorylineProgress : "has many"
+    StorylineStep ||--o{ StorylineProgress : "has many"
+    StorylineStep }o--|| Story : "many to one"
+    StorylineProgress }o--|| StoryQuestion : "many to one"
