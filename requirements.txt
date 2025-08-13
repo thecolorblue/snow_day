@@ -13,3 +13,4 @@ markdown==3.7
 psycopg2-binary==2.9.10
 langchain_openai
 Pillow
+ctc-forced-aligner @ git+https://github.com/MahmoudAshraf97/ctc-forced-aligner

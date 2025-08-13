@@ -26,6 +26,20 @@ type StorylineDetails = {
   }
 }
 
+export interface StoryMap {
+  type: string;
+  text: string;
+  startTime: number;
+  endTime: number;
+  startOffsetUtf32?: number;
+  endOffsetUtf32?: number;
+  timeline: StoryMap[];
+}
+
+function replace_substring(originalString: string, start: number, end: number, replacement: string) {
+  return originalString.substring(0, start) + replacement + originalString.substring(end);
+}
+
 async function getStorylineDetails(storylineId: number): Promise<StorylineDetails | null> {
   try {
     // Fetch all steps for the storyline, including their progress records
@@ -105,18 +119,18 @@ async function getStorylineStepDetails(storylineId: number, storylineStep: numbe
     if (!stepDetails || !stepDetails.story) {
       return null;
     }
-// Randomize the order of answers for each question
-if (stepDetails.story.story_question) {
-  stepDetails.story.story_question.forEach(sq => {
-    if (sq.question && sq.question.answers && typeof sq.question.answers === 'string') {
-      const answersArray = sq.question.answers.split(',').map(ans => ans.trim()).filter(ans => ans); // Split, trim, remove empty
-      if (answersArray.length > 1) {
-         const shuffledAnswers = shuffleArray(answersArray);
-         sq.question.answers = shuffledAnswers.join(',');
-      }
+    // Randomize the order of answers for each question
+    if (stepDetails.story.story_question) {
+      stepDetails.story.story_question.forEach(sq => {
+        if (sq.question && sq.question.answers && typeof sq.question.answers === 'string') {
+          const answersArray = sq.question.answers.split(',').map(ans => ans.trim()).filter(ans => ans); // Split, trim, remove empty
+          if (answersArray.length > 1) {
+            const shuffledAnswers = shuffleArray(answersArray);
+            sq.question.answers = shuffledAnswers.join(',');
+          }
+        }
+      });
     }
-  });
-}
 
 // Type assertion might be needed if Prisma's inferred type isn't precise enough,
 // but usually includes work well. Let's assume it matches StorylineStepDetails for now.
@@ -148,7 +162,6 @@ export default async function StorylineStepPage({ params }: PageProps) {
   }
 
   const stepDetails = await getStorylineStepDetails(storylineId, storylineStep);
-
   const storylineDetails = await getStorylineDetails(storylineId);
 
   if (!stepDetails) {
@@ -161,9 +174,36 @@ export default async function StorylineStepPage({ params }: PageProps) {
      notFound();
   }
 
-  // Parse story content from Markdown to HTML
-  const storyHtml = await marked(stepDetails.story.content || '');
+  let markdown = stepDetails.story.content.replace(/\<play-word\>/g, '').replace(/<\/play-word>/g, '');
 
+  const storyMap:StoryMap[] | null = stepDetails.story.map ? JSON.parse(stepDetails.story.map): null;
+  let wordList = [];
+
+  if (storyMap) {
+    wordList = storyMap.reduce((list, segment)=> {
+      segment.timeline.forEach((sentence)=> {
+        const addition = sentence.timeline.map(({
+          text, startTime, endTime, startOffsetUtf32, endOffsetUtf32
+        }) => ({ text, startTime, endTime, startOffsetUtf32, endOffsetUtf32 }));
+        list = list.concat(addition);
+      })
+      return list;
+    }, []);
+
+    wordList.reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
+      markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${wordList.length - i - 1}">${text}</span>`);
+    })
+  }
+
+
+
+  // Parse story content from Markdown to HTML
+  let storyHtml = await marked(markdown || '');
+
+  storyHtml = storyHtml.replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&gt;/g, '>')
+
+
+  console.log(storyHtml);
   // Extract questions from the nested structure
   const questions = stepDetails.story.story_question.map(sq => sq.question);
 
@@ -186,6 +226,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
+        wordList={wordList}
         storyAudio={stepDetails.story.audio}
         storyHtml={storyHtml}
         questions={questions.slice().sort(() => Math.random() - 0.5)}

@@ -36,10 +36,15 @@ const STTQuestion: React.FC<STTQuestionProps> = ({
     continuous: true, // Stop recording after a pause
     useLegacyResults: false,
     timeout: 10000,
+    crossBrowser: true,
+    useOnlyGoogleCloud: true,
+    googleApiKey: 'AIzaSyCvsyPU8Jo_c_EFAVB9NDWzBxW6aDfzoNo',
+    googleCloudRecognitionConfig: {
+      languageCode: 'en-US'
+    },
     speechRecognitionProperties: {
       grammars: speechRecognitionList
     }
-    // Removed lang option, it's not supported by the hook config
   });
 
   // Process the final result when it becomes available

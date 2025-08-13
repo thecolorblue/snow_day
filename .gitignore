@@ -1,5 +1,6 @@
 node_modules
 media
+forced_alignment
 
 story_backup*
 results.db
