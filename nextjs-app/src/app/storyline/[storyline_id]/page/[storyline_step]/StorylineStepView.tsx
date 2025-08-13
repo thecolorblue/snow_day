@@ -25,15 +25,23 @@ declare module 'react' {
 // Material Web component declarations are now in src/types/material-web.d.ts
 
 // --- Component Props ---
+
+interface StoryMapWord {
+  type: string;
+  text: string;
+  startTime: number;
+  endTime: number;
+  startOffsetUtf32?: number;
+  endOffsetUtf32?: number;
+}
 interface StorylineStepViewProps {
   storylineId: number;
   storylineStep: number;
   storyId: number;
-  storyHtml: string; // Already parsed HTML
+  storyHtml: string;
   storyAudio: string | null;
   questions: Question[];
-  // Add progress props later
-  // Add potential props for initial state if needed
+  wordList: StoryMapWord[];
 }
 
 // --- Component ---
@@ -41,31 +49,33 @@ export default function StorylineStepView({
  storylineId,
   storylineStep,
   storyHtml,
+  wordList,
   storyAudio,
   questions,
 }: StorylineStepViewProps) {
   const { progress, answers, pageLoadTime, isValid, handleInputChange, getCorrectnessStatus } = useStorylineProgress(questions);
- const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
- // --- Component State & Refs ---
- const recognitionRef = useRef<SpeechRecognition | null>(null);
- 
- 
- // --- Effects ---
- useEffect(() => {
-   // Dynamically import Material Web Components on mount
-   // Ensure these run only on the client side
-   if (typeof window !== 'undefined') {
-       import('@material/web/button/filled-tonal-button.js');
-       import('@material/web/iconbutton/filled-tonal-icon-button.js');
-       import('@material/web/icon/icon.js');
-   }
+  // --- Component State & Refs ---
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const audioRef = useRef<HTMLMediaElement | null>(null);
 
-   // Cleanup speech synthesis and recognition on unmount
-   return () => {
-     window.speechSynthesis?.cancel();
-     recognitionRef.current?.abort();
-   };
+
+  // --- Effects ---
+  useEffect(() => {
+    // Dynamically import Material Web Components on mount
+    // Ensure these run only on the client side
+    if (typeof window !== 'undefined') {
+        import('@material/web/button/filled-tonal-button.js');
+        import('@material/web/iconbutton/filled-tonal-icon-button.js');
+        import('@material/web/icon/icon.js');
+    }
+
+    // Cleanup speech synthesis and recognition on unmount
+    return () => {
+      window.speechSynthesis?.cancel();
+      recognitionRef.current?.abort();
+    };
   }, [answers, questions]); // Rerun if answers or questions change - Kept for cleanup logic
  
   // Effect to initialize Speech Recognition
@@ -95,9 +105,17 @@ export default function StorylineStepView({
 
       recognitionRef.current = recognitionInstance;
     } else {
-       console.warn('Web Speech API (Recognition) is not supported by this browser.');
-     }
+      console.warn('Web Speech API (Recognition) is not supported by this browser.');
+    }
   }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.addEventListener("timeupdate", (event) => {
+        
+      });
+    }
+  }, [audioRef])
 
 
   // Form submission handler using the Server Action
@@ -266,7 +284,7 @@ export default function StorylineStepView({
                    <h2 className="text-xl font-semibold mb-2">Story</h2>
                    {/* Use the PlayStoryButton component */}
                    
-                  {storyAudio && <audio controls>
+                  {storyAudio && <audio controls ref={audioRef}>
                     <source src={storyAudio} type="audio/mpeg"></source>
                     Your browser does not support the audio element.
                   </audio>}
