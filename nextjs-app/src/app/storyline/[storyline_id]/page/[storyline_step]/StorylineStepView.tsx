@@ -59,6 +59,7 @@ export default function StorylineStepView({
   // --- Component State & Refs ---
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioRef = useRef<HTMLMediaElement | null>(null);
+  const highlightedWordIndexRef = useRef<number | null>(null);
 
 
   // --- Effects ---
@@ -110,12 +111,90 @@ export default function StorylineStepView({
   }, []);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.addEventListener("timeupdate", (event) => {
-        
-      });
+    const audio = audioRef.current;
+    if (!audio || !wordList) return;
+
+    // Create a style element to hold the dynamic highlight style
+    const styleElement = document.createElement('style');
+    styleElement.id = 'highlight-style';
+    document.head.appendChild(styleElement);
+
+    const handleTimeUpdate = () => {
+      const currentTime = audio.currentTime;
+      // Find the index of the word that should be highlighted
+      const currentWordIndex = wordList.findIndex(word =>
+        currentTime >= word.startTime && currentTime < word.endTime
+      );
+
+      // Only update if the word has changed
+      if (currentWordIndex !== -1 && currentWordIndex !== highlightedWordIndexRef.current) {
+        // Update the style element to highlight the new word
+        styleElement.innerHTML = `
+          .word-${currentWordIndex} {
+            background-color: blue;
+            color: white;
+            transition: background-color 0.3s ease-in-out;
+          }
+        `;
+        highlightedWordIndexRef.current = currentWordIndex;
+      }
+    };
+
+    const handlePauseOrEnd = () => {
+        // Clear the highlight when audio stops
+        styleElement.innerHTML = '';
+        highlightedWordIndexRef.current = null;
     }
-  }, [audioRef])
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('pause', handlePauseOrEnd);
+    audio.addEventListener('ended', handlePauseOrEnd);
+
+    // Cleanup function to remove event listeners and the style element
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('pause', handlePauseOrEnd);
+      audio.removeEventListener('ended', handlePauseOrEnd);
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
+    };
+  }, [wordList]); // Rerun effect if wordList changes
+
+  // Effect to style the words that are also question keywords
+  useEffect(() => {
+    if (!questions || !wordList) return;
+
+    const styleElement = document.createElement('style');
+    styleElement.id = 'question-word-styles';
+    document.head.appendChild(styleElement);
+
+    const questionWordStyles = questions.map(question => {
+      if (question.correct) {
+        // Find the index of the word in wordList that matches the question correct
+        const wordIndex = wordList.findIndex(word => word.text.toLowerCase() === question.correct.toLowerCase());
+        if (wordIndex !== -1) {
+          return `
+            .word-${wordIndex} {
+              text-decoration: underline;
+              color: rgba(100, 100, 100, 0);
+              text-decoration-color: #333;
+            }
+          `;
+        }
+      }
+      return '';
+    }).join('');
+
+    styleElement.innerHTML = questionWordStyles;
+
+    // Cleanup function to remove the style element
+    return () => {
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
+    };
+  }, [questions, wordList]);
 
 
   // Form submission handler using the Server Action

@@ -195,15 +195,11 @@ export default async function StorylineStepPage({ params }: PageProps) {
     })
   }
 
-
-
   // Parse story content from Markdown to HTML
   let storyHtml = await marked(markdown || '');
 
   storyHtml = storyHtml.replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&gt;/g, '>')
 
-
-  console.log(storyHtml);
   // Extract questions from the nested structure
   const questions = stepDetails.story.story_question.map(sq => sq.question);
 
@@ -226,7 +222,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
-        wordList={wordList}
+        wordList={wordList.reverse()}
         storyAudio={stepDetails.story.audio}
         storyHtml={storyHtml}
         questions={questions.slice().sort(() => Math.random() - 0.5)}
