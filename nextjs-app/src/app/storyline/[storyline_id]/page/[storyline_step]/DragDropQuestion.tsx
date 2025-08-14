@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Question } from '@prisma/client';
 // import dragula from 'react-dragula'; // Remove static import
 import 'dragula/dist/dragula.css'; // Import default Dragula CSS
+import { PlayWord } from '@/components';
 
 interface DragDropQuestionProps {
   question: Question;
@@ -241,6 +242,7 @@ const DragDropQuestion: React.FC<DragDropQuestionProps> = ({
 
       {/* Word Drop Zone */}
       <div className="mb-4">
+        <PlayWord>{question.correct}</PlayWord>
         <div ref={wordContainerRef} className="drop-zone flex flex-wrap items-center">
           {wordInProgress.map((letter, index) => (
             <div
