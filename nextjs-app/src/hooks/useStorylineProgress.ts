@@ -2,16 +2,16 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Question } from '@prisma/client'; // Import Question type from Prisma
 
 // Define state types for clarity
-export type StorylineProgress = {
+type StorylineProgress = {
   attempts: number;
   correct: boolean | null;
 };
 
-export type StorylineProgressState = {
+type StorylineProgressState = {
   [questionId: number]: StorylineProgress;
 };
 
-export type AnswerState = {
+type AnswerState = {
   [key: string]: string; // e.g., { 'question_1': 'answer text' }
 };
 
