@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Chewy, Lexend_Deca } from "next/font/google"; // Import Chewy and Lexend Deca fonts
 import Link from "next/link"; // Import Link
+import Providers from "./Providers";
+import SDApplicationBar from "@/components/SDApplicationBar";
 import "./globals.css";
+import { BookOpen } from 'lucide-react';
 
 // Instantiate Chewy font
 const chewy = Chewy({
@@ -30,13 +33,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${chewy.variable} ${lexendDeca.variable} antialiased`}> {/* Apply Chewy and Lexend Deca font variables */}
-        <nav className="bg-gray-100 p-4 border-b">
-          <div className="container mx-auto flex space-x-4">
-            <Link href="/" className="text-blue-600 hover:underline">Home</Link>
-            <Link href="/storylines" className="text-blue-600 hover:underline">Storylines</Link>
-          </div>
-        </nav>
-        <main>{children}</main> {/* Wrap children in main for semantics */}
+        <Providers>
+          <SDApplicationBar app_name="Snow Day" primary_menu={[
+            {
+              title: 'View Storylines',
+              // callback: () => console.log('storyline clicked'),
+              icon: <BookOpen />
+            }
+          ]}/>
+          <main>{children}</main> {/* Wrap children in main for semantics */}
+        </Providers>
       </body>
     </html>
   );
