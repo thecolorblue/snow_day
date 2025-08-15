@@ -55,13 +55,18 @@ erDiagram
         DateTime updated_at
     }
 
+    Guardian {
+        Integer id PK
+        String email
+        DateTime created_at
+    }
+
     Student {
         Integer id PK
-        String genre
-        String location
-        String style
-        JSON interests
-        JSON friends
+        String name
+        String friends
+        String interests
+        Integer guardian_id FK
         DateTime created_at
     }
 
@@ -72,3 +77,4 @@ erDiagram
     StorylineStep ||--o{ StorylineProgress : "has many"
     StorylineStep }o--|| Story : "many to one"
     StorylineProgress }o--|| StoryQuestion : "many to one"
+    Guardian ||--o{ Student : "has many"

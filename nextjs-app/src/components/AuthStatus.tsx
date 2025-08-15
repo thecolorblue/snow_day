@@ -3,7 +3,8 @@
 import { useSession } from "next-auth/react"
 import { useState } from "react"
 import { signIn, signOut } from "next-auth/react"
-import { LogOut } from "lucide-react"
+import { LogOut, User } from "lucide-react"
+import Link from "next/link"
 
 export default function AuthStatus() {
   const { data: session, status } = useSession()
@@ -27,22 +28,21 @@ export default function AuthStatus() {
             <img
               src={session.user.image}
               alt={session.user.name || "User Avatar"}
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full user-avatar-height"
             />
           )}
         </button>
 
         {isMenuOpen && (
           <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
-            <button
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => {
-                console.log("Profile settings clicked")
-                setIsMenuOpen(false)
-              }}
+            <Link
+              href="/profile"
+              className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => setIsMenuOpen(false)}
             >
-              Profile settings
-            </button>
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Link>
             <div className="border-t my-1"></div>
             <button
               onClick={() => signOut()}
