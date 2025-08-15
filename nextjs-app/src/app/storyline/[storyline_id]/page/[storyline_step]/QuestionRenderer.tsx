@@ -44,21 +44,13 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   }
 
   if (q.type === 'select') {
-     if (random < 0.5) {
-       return (
-         <SelectQuestion
-           question={q}
-           currentAnswer={currentAnswer}
-           handleInputChange={handleInputChange}
-         />
-       );
-     } else {
-       return (<DragDropQuestion
-         question={q}
-         currentAnswer={currentAnswer}
-         handleInputChange={handleInputChange}
-       />);
-     }
+    return (
+      <SelectQuestion
+        question={q}
+        currentAnswer={currentAnswer}
+        handleInputChange={handleInputChange}
+      />
+    );
   }
 
   // Fallback for unknown question types
