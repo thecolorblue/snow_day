@@ -141,7 +141,9 @@ class StorylineProgress(Base):
     @property
     def question(self):
         return self.story_question.question if self.story_question else None
-    
+
+
+
 
 class TaskStatus(enum.Enum):
     PENDING = 'PENDING'
