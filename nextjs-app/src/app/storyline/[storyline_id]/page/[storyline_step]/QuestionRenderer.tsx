@@ -4,12 +4,6 @@ import React, { useState } from 'react';
 import { Question } from '@prisma/client';
 import dynamic from 'next/dynamic'; // Import dynamic
 import SelectQuestion from './SelectQuestion';
-import DragDropQuestion from './DragDropQuestion';
-
-const STTQuestion = dynamic(() => import('./STTQuestion'), {
-  ssr: false,
-  loading: () => <p>Loading speech recognition...</p>
-});
 
 interface QuestionRendererProps {
   question: Question;
@@ -22,10 +16,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   question: q,
   currentAnswer,
   handleInputChange,
-  getCorrectnessStatus,
 }) => {
-  const [random] = useState(Math.random());
-
   if (q.type === 'input') {
     return (
       <div className="flex items-center space-x-2">

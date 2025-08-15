@@ -46,7 +46,7 @@ interface StorylineStepViewProps {
 
 // --- Component ---
 export default function StorylineStepView({
- storylineId,
+  storylineId,
   storylineStep,
   storyHtml,
   wordList,

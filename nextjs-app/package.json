@@ -24,8 +24,7 @@
     "next-auth": "^4.24.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-dragula": "^1.1.17",
-    "react-hook-speech-to-text": "^0.8.0"
+    "react-dragula": "^1.1.17"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

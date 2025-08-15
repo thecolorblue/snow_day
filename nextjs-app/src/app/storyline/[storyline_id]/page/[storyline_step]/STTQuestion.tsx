@@ -46,7 +46,7 @@ const STTQuestion: React.FC<STTQuestionProps> = ({
     timeout: 10000,
     crossBrowser: true,
     useOnlyGoogleCloud: true,
-    googleApiKey: 'AIzaSyCvsyPU8Jo_c_EFAVB9NDWzBxW6aDfzoNo',
+    googleApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
     googleCloudRecognitionConfig: {
       languageCode: 'en-US'
     },

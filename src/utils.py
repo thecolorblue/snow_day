@@ -186,7 +186,7 @@ LOCATIONS = [
     'under water',
     'wild west',
     'jungles of Africa',
-    'Antartica',
+    'Antarctica',
     'Japanese Mountains',
 ]
 

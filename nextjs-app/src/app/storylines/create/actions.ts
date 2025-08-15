@@ -7,7 +7,7 @@ import { Question } from '@prisma/client';
 // Define static options (matching the template/form component)
 // Consider moving these to a shared constants file if used elsewhere
 const GENRES = ['adventure', 'super hero', 'mystery', 'comedy', 'science fiction'];
-const LOCATIONS = ['under water', 'wild west', 'jungles of Africa', 'Antartica', 'Japanese Mountains'];
+const LOCATIONS = ['under water', 'wild west', 'jungles of Africa', 'Antarctica', 'Japanese Mountains'];
 const STYLES = ['poem', 'comic book', 'Shakespeare', 'Harry Potter'];
 const INTERESTS = ['basketball', 'acting', 'directing plays', 'American Girl dolls', 'skateboarding', 'ice skating', 'Mario Kart', 'Zelda'];
 const FRIENDS = ['Paige', 'Maia', 'Zadie', 'Zoe'];

@@ -199,7 +199,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
       return list;
     }, []);
 
-    wordList.reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
+    [...wordList].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
       markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${wordList.length - i - 1}">${text}</span>`);
     })
   }
@@ -231,7 +231,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
-        wordList={wordList.reverse()}
+        wordList={wordList}
         storyAudio={stepDetails.story.audio}
         storyHtml={storyHtml}
         questions={questions.slice().sort(() => Math.random() - 0.5)}
