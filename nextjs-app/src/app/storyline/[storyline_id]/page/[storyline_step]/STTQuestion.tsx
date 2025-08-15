@@ -19,6 +19,7 @@ declare global {
 
 
 
+
 const STTQuestion: React.FC<STTQuestionProps> = ({
   question,
   currentAnswer,

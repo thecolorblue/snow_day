@@ -77,6 +77,7 @@ export default function StorylineStepView({
     };
   }, [answers, questions]); // Rerun if answers or questions change - Kept for cleanup logic
 
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !wordList) return;

@@ -51,6 +51,7 @@ const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         handleInputChange={handleInputChange}
       />
     );
+
   }
 
   // Fallback for unknown question types
