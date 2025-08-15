@@ -115,14 +115,23 @@ model Document {
   @@map("document")
 }
 
+model Guardian {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  students  Student[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("guardian")
+}
+
 model Student {
-  id        Int      @id @default(autoincrement())
-  genre     String
-  location  String
-  style     String
-  interests String[] // Array of strings
-  friends   String[] // Array of strings
-  createdAt DateTime @default(now()) @map("created_at")
+  id          Int       @id @default(autoincrement())
+  name        String
+  friends     String
+  interests   String
+  guardianId  Int?      @map("guardian_id")
+  guardian    Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("student")
 }

@@ -15,6 +15,16 @@
             ],
             "jinja": true, // Enable Jinja templating debugging if needed
             "cwd": "${workspaceFolder}" // Ensure it runs from the project root
+        },
+        {
+            "name": "Next.js: npm run dev",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/nextjs-app",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev"],
+            "skipFiles": ["<node_internals>/**"],
+            "console": "integratedTerminal"
         }
     ]
 }

@@ -11,6 +11,14 @@ interface STTQuestionProps {
   getCorrectnessStatus: (questionId: number) => boolean | null; // <-- Added prop
 }
 
+declare global {
+  interface Window {
+    webkitSpeechGrammarList: any;
+  }
+}
+
+
+
 const STTQuestion: React.FC<STTQuestionProps> = ({
   question,
   currentAnswer,
@@ -21,7 +29,7 @@ const STTQuestion: React.FC<STTQuestionProps> = ({
   const isCorrect = getCorrectnessStatus(question.id); // <-- Get correctness status
   const grammar =
   "#JSGF V1.0; grammar alphabet; public <letters> = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z ;";
-  const speechRecognitionList = new webkitSpeechGrammarList();
+  const speechRecognitionList = new window.webkitSpeechGrammarList();
   speechRecognitionList.addFromString(grammar, 1);
 
   const {
