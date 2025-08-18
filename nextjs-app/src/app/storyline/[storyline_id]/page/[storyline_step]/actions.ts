@@ -71,7 +71,7 @@ export async function submitStorylineStepAction(
         throw new Error("Could not retrieve question data for scoring.");
     }
 
-     // Map for easy lookup: questionId -> { correct: string, storyQuestionId: number }
+    // Map for easy lookup: questionId -> { correct: string, storyQuestionId: number }
     const correctAnswersMap = new Map<number, { correct: string, storyQuestionId: number | null }>();
     questionsData.forEach(q => {
         // Ensure story_question exists and has an id

@@ -48,3 +48,11 @@ body {
   top: 39%;
   right: 0px;
 }
+
+.user-avatar-height {
+  height: 45px;
+}
+
+.justify-between {
+  justify-content: space-between;
+}

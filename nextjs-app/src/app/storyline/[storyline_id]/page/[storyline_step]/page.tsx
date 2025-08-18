@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { marked } from 'marked'; // Import marked for Markdown conversion
-import StorylineStepView from './StorylineStepView'; // Client component for rendering
+import StorylineStepView, { StoryMapWord } from './StorylineStepView'; // Client component for rendering
 import { Question, Story, StoryQuestion, StorylineStep, StorylineProgress } from '@prisma/client'; // Import necessary types
 
 // Define the expected shape of the fetched data
@@ -36,7 +36,9 @@ export interface StoryMap {
   timeline: StoryMap[];
 }
 
-function replace_substring(originalString: string, start: number, end: number, replacement: string) {
+function replace_substring(originalString: string, start: number = 0, end: number = 0, replacement: string) {
+  if (end === 0) { end = originalString.length; }
+  
   return originalString.substring(0, start) + replacement + originalString.substring(end);
 }
 
@@ -177,20 +179,27 @@ export default async function StorylineStepPage({ params }: PageProps) {
   let markdown = stepDetails.story.content.replace(/\<play-word\>/g, '').replace(/<\/play-word>/g, '');
 
   const storyMap:StoryMap[] | null = stepDetails.story.map ? JSON.parse(stepDetails.story.map): null;
-  let wordList = [];
+  let wordList: StoryMapWord[] = [];
 
   if (storyMap) {
-    wordList = storyMap.reduce((list, segment)=> {
+    wordList = storyMap.reduce((list: Array<StoryMapWord>, segment)=> {
       segment.timeline.forEach((sentence)=> {
         const addition = sentence.timeline.map(({
           text, startTime, endTime, startOffsetUtf32, endOffsetUtf32
-        }) => ({ text, startTime, endTime, startOffsetUtf32, endOffsetUtf32 }));
+        }) => ({
+          type: 'word',
+          text,
+          startTime,
+          endTime,
+          startOffsetUtf32: startOffsetUtf32 || 0,
+          endOffsetUtf32: endOffsetUtf32 || 0
+        }));
         list = list.concat(addition);
       })
       return list;
     }, []);
 
-    wordList.reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
+    [...wordList].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
       markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${wordList.length - i - 1}">${text}</span>`);
     })
   }
@@ -222,7 +231,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
-        wordList={wordList.reverse()}
+        wordList={wordList}
         storyAudio={stepDetails.story.audio}
         storyHtml={storyHtml}
         questions={questions.slice().sort(() => Math.random() - 0.5)}

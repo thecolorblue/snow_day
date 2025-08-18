@@ -5,7 +5,7 @@ import QuestionLoader from './QuestionLoader'; // Import the new loader componen
 export const dynamic = 'force-dynamic'; // Explicitly mark page as dynamic
 // Define static options (matching the template)
 const GENRES = ['adventure', 'super hero', 'mystery', 'comedy', 'science fiction'];
-const LOCATIONS = ['under water', 'wild west', 'jungles of Africa', 'Antartica', 'Japanese Mountains'];
+const LOCATIONS = ['under water', 'wild west', 'jungles of Africa', 'Antarctica', 'Japanese Mountains'];
 const STYLES = ['poem', 'comic book', 'Shakespeare', 'Harry Potter'];
 const INTERESTS = ['basketball', 'acting', 'directing plays', 'American Girl dolls', 'skateboarding', 'ice skating', 'Mario Kart', 'Zelda'];
 const FRIENDS = ['Paige', 'Maia', 'Zadie', 'Zoe'];

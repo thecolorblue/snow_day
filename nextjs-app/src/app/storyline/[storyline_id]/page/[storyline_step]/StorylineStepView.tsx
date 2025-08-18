@@ -26,13 +26,13 @@ declare module 'react' {
 
 // --- Component Props ---
 
-interface StoryMapWord {
+export interface StoryMapWord {
   type: string;
   text: string;
   startTime: number;
   endTime: number;
-  startOffsetUtf32?: number;
-  endOffsetUtf32?: number;
+  startOffsetUtf32: number;
+  endOffsetUtf32: number;
 }
 interface StorylineStepViewProps {
   storylineId: number;
@@ -46,7 +46,7 @@ interface StorylineStepViewProps {
 
 // --- Component ---
 export default function StorylineStepView({
- storylineId,
+  storylineId,
   storylineStep,
   storyHtml,
   wordList,
@@ -57,7 +57,6 @@ export default function StorylineStepView({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- Component State & Refs ---
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioRef = useRef<HTMLMediaElement | null>(null);
   const highlightedWordIndexRef = useRef<number | null>(null);
 
@@ -75,40 +74,8 @@ export default function StorylineStepView({
     // Cleanup speech synthesis and recognition on unmount
     return () => {
       window.speechSynthesis?.cancel();
-      recognitionRef.current?.abort();
     };
   }, [answers, questions]); // Rerun if answers or questions change - Kept for cleanup logic
- 
-  // Effect to initialize Speech Recognition
-  useEffect(() => {
-     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-     if (SpeechRecognitionAPI) {
-       const recognitionInstance = new SpeechRecognitionAPI();
-      //  const grammar = "#JSGF V1.0; grammar letters; public <letter> = a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z ;";
-       // const speechRecognitionList = new SpeechGrammarList(); // Standard API
-       // speechRecognitionList.addFromString(grammar, 1);
-       // recognitionInstance.grammars = speechRecognitionList; // Standard API
-       recognitionInstance.continuous = false;
-       recognitionInstance.interimResults = false; // Process only final results
-       recognitionInstance.lang = 'en-US';
- 
-      recognitionInstance.onstart = () => console.log('Speech recognition started');
-      recognitionInstance.onend = () => console.log('Speech recognition ended');
-      // Add explicit type for the error event
-      recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error('Speech recognition error:', event.error);
-          // Optionally provide more specific feedback based on event.error
-          // e.g., 'network', 'no-speech', 'audio-capture', 'not-allowed', 'service-not-allowed', 'bad-grammar', 'language-not-supported'
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-              alert("Speech recognition permission denied. Please allow microphone access in your browser settings.");
-          }
-      };
-
-      recognitionRef.current = recognitionInstance;
-    } else {
-      console.warn('Web Speech API (Recognition) is not supported by this browser.');
-    }
-  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -265,95 +232,6 @@ export default function StorylineStepView({
       )
     );
   };
- 
-  // Component for the speech recognition button
-  const ListenButton = ({ onTranscript }: { onTranscript: (transcript: string) => void }) => {
-     const [isListening, setIsListening] = useState(false);
- 
-     const handleListen = useCallback(() => {
-         if (!recognitionRef.current) {
-             console.warn('Speech recognition not initialized.');
-             return;
-         }
- 
-        const recognition = recognitionRef.current;
-
-        // Add explicit type for the result event
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-            let transcript = '';
-            // Iterate through results (though continuous=false means only one final result)
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    transcript += event.results[i][0].transcript;
-                }
-            }
-            console.log('Transcript:', transcript);
-            // Clean up transcript
-            onTranscript(transcript.replace(/\s+/g, '').toLowerCase());
-             setIsListening(false); // Stop listening visually after result
-         };
- 
-         recognition.onstart = () => {
-             console.log('Speech recognition actually started');
-             setIsListening(true);
-         };
- 
-         recognition.onend = () => {
-             console.log('Speech recognition actually ended');
-             setIsListening(false);
-        };
-
-        // Add explicit type for the error event
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-            console.error('Speech recognition error:', event.error);
-            // Add user feedback for common errors
-            if (event.error === 'no-speech') {
-                alert("No speech detected. Please try speaking clearly.");
-            } else if (event.error === 'audio-capture') {
-                alert("Audio capture failed. Please ensure your microphone is working.");
-            } else if (event.error === 'not-allowed') {
-                 alert("Microphone access denied. Please allow access to use speech recognition.");
-            }
-             setIsListening(false);
-         };
- 
- 
-         if (isListening) {
-             recognition.stop();
-         } else {
-             try {
-                 recognition.start();
-             } catch (e) {
-                 // Handle cases where recognition might already be active or other errors
-                 console.error("Error starting speech recognition:", e);
-                 setIsListening(false); // Ensure state is correct if start fails
-             }
-         }
-         // Toggle state immediately for responsiveness, though actual start/stop is async
-         // setIsListening(!isListening); // Let events handle state changes for accuracy
- 
-     }, [isListening, onTranscript]);
- 
-     // Use mouse down/up like original? Or just click? Click is simpler for React.
-     // Let's stick to click for now.
- 
-     return (
-         React.createElement('md-filled-tonal-button' as any, { className: "button-listen", onClick: handleListen },
-             React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", height: "24px", viewBox: "0 -960 960 960", width: "24px", fill: isListening ? '#ff0000' : '#4956e2' },
-                 React.createElement('path', { d: "M480-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-240Zm-40 520v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T480-320q83 0 141.5-58.5T680-520h80q0 105-68 184t-172 93v123h-80Zm40-360q17 0 28.5-11.5T520-520v-240q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v240q0 17 11.5 28.5T480-480Z" })
-             ),
-             isListening ? 'Listening...' : ''
-         )
-     );
-  };
- 
-  // QuestionLink component (if needed later)
-  // const QuestionLink = ({ keyword }: { keyword: string }) => {
-  //   const handleClick = () => {
-  //     window.location.hash = keyword;
-  //   };
-  //   return <button onClick={handleClick} style={{ marginLeft: '5px', cursor: 'pointer' }}>?</button>;
-  // };
 
   return (
     <div className="flex flex-col md:flex-row gap-4 storyline-step-view-font"> {/* Added class for specific font */}

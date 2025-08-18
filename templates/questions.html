@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questions Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/static/styles/assignments.css" rel="stylesheet" />
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h1>Questions</h1>
+    </div>
+    <question-table questions='{{ questions | tojson }}'></question-table>
+
+    <script type="module">
+        class QuestionTable extends HTMLElement {
+            constructor() {
+                super();
+                // Attach a shadow DOM to the element.
+                this.attachShadow({ mode: 'open' });
+
+                // Create a template for the component.
+                const template = document.createElement('template');
+                template.innerHTML = `
+                    <style>
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            background-color: white;
+                        }
+
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: left;
+                        }
+
+                        tbody {
+                            background-color: white;
+                        }
+
+                        th {
+                            background-color: #f4f4f4;
+                        }
+
+                        button {
+                            background-color: #007BFF;
+                            color: white;
+                            border: none;
+                            padding: 5px 10px;
+                            cursor: pointer;
+                            border-radius: 3px;
+                        }
+
+                        button:hover {
+                            background-color: #0056b3;
+                        }
+                        
+                        .type-multiple-choice {
+                            color: #4caf50;
+                            font-weight: bold;
+                        }
+                        
+                        .type-fill-in {
+                            color: #2196f3;
+                            font-weight: bold;
+                        }
+                        
+                        .type-true-false {
+                            color: #ff9800;
+                            font-weight: bold;
+                        }
+                    </style>
+                    <table part="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Story ID</th>
+                                <th>Type</th>
+                                <th>Question</th>
+                                <th>Correct Answer</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                `;
+
+                // Append the template content to the shadow DOM.
+                this.shadowRoot.appendChild(template.content.cloneNode(true));
+            }
+
+            // Observed attributes for detecting changes.
+            static get observedAttributes() {
+                return ['questions'];
+            }
+
+            // Called when the observed attribute changes.
+            attributeChangedCallback(name, oldValue, newValue) {
+                if (name === 'questions') {
+                    this.renderTable(JSON.parse(newValue));
+                }
+            }
+
+            renderQuestionRow({id, story_id, type, question, correct}) {
+                // Create type class for styling
+                const typeClass = `type-${type.toLowerCase().replace(' ', '-')}`;
+                
+                // Truncate question text if it's too long
+                const questionText = question.length > 50 ? question.substring(0, 50) + '...' : question;
+                
+                return `
+                    <td>${id}</td>
+                    <td>${story_id}</td>
+                    <td class="${typeClass}">${type}</td>
+                    <td>${questionText}</td>
+                    <td>${correct}</td>
+                    <td><button onclick="location.href='/stories/${story_id}'">View Story</button></td>
+                `;
+            }
+
+            // Renders the table rows based on the questions data.
+            renderTable(questions) {
+                const tbody = this.shadowRoot.querySelector('tbody');
+                tbody.innerHTML = '';
+
+                questions.forEach(question => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = this.renderQuestionRow(question);
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Define the custom element.
+        customElements.define('question-table', QuestionTable);
+    </script>
+</body>
+</html>

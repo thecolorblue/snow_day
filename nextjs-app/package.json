@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "knip": "knip"
+    "knip": "knip",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@material/web": "^2.3.0",
@@ -16,12 +18,13 @@
     "@vercel/blob": "^1.0.0",
     "canvas-confetti": "^1.9.3",
     "dragula": "^3.7.3",
+    "lucide-react": "^0.539.0",
     "marked": "^15.0.8",
     "next": "15.3.0",
+    "next-auth": "^4.24.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-dragula": "^1.1.17",
-    "react-hook-speech-to-text": "^0.8.0"
+    "react-dragula": "^1.1.17"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

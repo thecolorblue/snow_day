@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@cicciosgamino/snack-bar": "^1.3.0"
+    "@cicciosgamino/snack-bar": "^1.3.0",
+    "knip": "^5.62.0"
   }
 }
