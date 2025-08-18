@@ -46,6 +46,7 @@ const SDApplicationBar = ({ app_name, primary_menu }: SDApplicationBarProps) => 
                 Open document
               </button>
               {primary_menu && primary_menu.map(({ title, callback, icon })=> (<button
+                key={title}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 onClick={()=> {
                   // callback();
