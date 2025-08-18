@@ -4,7 +4,7 @@ import Link from "next/link"; // Import Link
 import Providers from "./Providers";
 import SDApplicationBar from "@/components/SDApplicationBar";
 import "./globals.css";
-import { BookOpen } from 'lucide-react';
+import { BookOpen, PlusCircle } from 'lucide-react';
 
 // Instantiate Chewy font
 const chewy = Chewy({
@@ -41,6 +41,14 @@ export default function RootLayout({
               icon: <BookOpen />
             }
           ]}/>
+          <div className="bg-gray-100 p-2 flex justify-end space-x-4">
+            <Link href="/vocab" className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+              Vocab List
+            </Link>
+            <Link href="/vocab/create" className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">
+              Create Vocab
+            </Link>
+          </div>
           <main>{children}</main> {/* Wrap children in main for semantics */}
         </Providers>
       </body>

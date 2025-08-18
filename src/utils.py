@@ -103,11 +103,11 @@ def append_string_randomly(data_list, string_to_append):
     return data_list
 
 
-def gen_incorrect_answers(word: str)-> List[str]:
+def gen_incorrect_answers(word: str, num_incorrect: int = 3)-> List[str]:
     prompt = f"""
-Take a word and return 3 incorrect spellings of that word. Make one completely wrong and two close but incorrect.
+Take a word and return {num_incorrect} incorrect spellings of that word. Make one completely wrong and two close but incorrect.
 
-Only reply with a list of three words seperated by commas.
+Only reply with a list of three words separated by commas.
 
 Here is the word: {word}
     """

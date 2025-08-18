@@ -2,19 +2,28 @@
 
 import React, { useState, useCallback } from 'react'; // Add useCallback
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'; // Import hooks
-import { Question, Student } from '@prisma/client'; // Import Question and Student types
+import { Student } from '@prisma/client'; // Import Student type
 import { createStorylineAction } from './actions'; // Import the Server Action
+
+// Type for vocab with student info
+type VocabWithStudent = {
+  id: number;
+  list: string;
+  createdAt: Date;
+  student_vocab: {
+    student: Student;
+  }[];
+};
 
 // Define props for the component
 interface StorylineFormProps {
-  questions: Question[];
+  vocabs: VocabWithStudent[];
   genres: string[];
   locations: string[];
   styles: string[];
   interests: string[];
   friends: string[];
   students: Student[]; // Add students prop
-  classrooms: string[];
 }
 
 // Helper function for random selection in single-select dropdowns
@@ -33,119 +42,51 @@ const randomSelectMultiple = (options: { value: string; text: string }[]): strin
 
 
 export default function StorylineForm({
-  questions,
+  vocabs,
   genres,
   locations,
   styles,
   interests: staticInterests, // Renamed from props
   friends: staticFriends,     // Renamed from props
-  classrooms,
   students,
 }: StorylineFormProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
   // State for form fields - initialize as needed
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [selectedVocab, setSelectedVocab] = useState<string>('');
   const [selectedGenre, setSelectedGenre] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
-  // Initialize state from URL search param if present
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string>(searchParams.get('classroom_name') || '');
-  // const [genTtl, setGenTtl] = useState<boolean>(true); // State for the checkbox if needed
 
   // Prepare options for multi-select randomizer
-  const questionOptions = questions.map(q => ({ value: String(q.id), text: `${q.question} (Type: ${q.type}, Correct: ${q.correct})` }));
   const interestOptions = staticInterests.map(i => ({ value: i, text: i }));
   const friendOptions = staticFriends.map(f => ({ value: f, text: f }));
-
-// The manual handleSubmit function was removed in the previous step.
-// We will now update the form tag to use the server action.
-  // Handle classroom selection change and update URL
-  const handleClassroomChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const classroom = e.target.value;
-    setSelectedClassroomId(classroom);
-
-    // Create new search params instance
-    const current = new URLSearchParams(Array.from(searchParams.entries())); // Create mutable copy
-
-    if (!classroom) {
-      // If '-- Select a Classroom --' is chosen, remove the param
-      current.delete('classroom_name');
-    } else {
-      // Otherwise, set the param to the selected classroom
-      current.set('classroom_name', classroom);
-    }
-
-    // Cast to string
-    const search = current.toString();
-    // or const query = `${'?'.repeat(search.length && 1)}${search}`;
-    const query = search ? `?${search}` : "";
-
-    // Update the URL without scrolling to the top
-    router.replace(`${pathname}${query}`, { scroll: false });
-
-  }, [searchParams, pathname, router]);
 
   // The form uses a Server Action (`createStorylineAction`), so no manual handleSubmit needed here.
 
   return (
     <form action={createStorylineAction} className="bg-white p-6 rounded-lg shadow-md space-y-6">
-      {/* Classroom Selection Dropdown */}
+      {/* Vocab Selection Dropdown */}
       <div>
-        <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-1">Select Classroom (Optional):</label>
+        <label htmlFor="vocab" className="block text-sm font-medium text-gray-700 mb-1">Select Vocabulary List:</label>
         <select
-          id="student"
-          name="student_id" // This name might be used by the server action if needed
-          value={selectedClassroomId}
-          onChange={handleClassroomChange}
+          id="vocab"
+          name="selected_vocab"
+          value={selectedVocab}
+          onChange={(e) => setSelectedVocab(e.target.value)}
           className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          required
         >
-          <option value="">-- Select a Classroom --</option>
-          {classrooms.map((classroom) => (
-            // Display classroom ID. Consider adding a name field to the Classroom model for better display.
-            <option key={classroom} value={classroom}> {/* Ensure value is string */}
-              Classroom ID: {classroom}
+          <option value="">-- Select a Vocabulary List --</option>
+          {vocabs.map((vocab) => (
+            <option key={vocab.id} value={vocab.id}>
+              Vocab #{vocab.id}: {vocab.list.split(',').slice(0, 3).join(', ')}
+              {vocab.list.split(',').length > 3 ? '...' : ''}
+              ({vocab.student_vocab.map(sv => sv.student.name).join(', ')})
             </option>
           ))}
         </select>
-        <p className="text-xs text-gray-500 mt-1">Selecting a student will pre-fill their preferences below.</p>
-      </div>
-
-      {/* Questions */}
-      <div>
-        <label htmlFor="questions" className="block text-sm font-medium text-gray-700 mb-1">Select Questions:</label>
-        <div className="flex items-center space-x-2">
-          <select
-            id="questions"
-            name="selected_questions" // Name matches form data key
-            multiple
-            value={selectedQuestions}
-            onChange={(e) => setSelectedQuestions(Array.from(e.target.selectedOptions, option => option.value))}
-            className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            style={{ minHeight: '100px' }}
-          >
-            {questions.length > 0 ? (
-              questions.map((question) => (
-                <option key={question.id} value={question.id}>
-                  {question.question} (Type: {question.type}, Correct: {question.correct})
-                </option>
-              ))
-            ) : (
-              <option disabled>No questions found for this classroom.</option>
-            )}
-          </select>
-          <button
-            type="button"
-            onClick={() => setSelectedQuestions(randomSelectMultiple(questionOptions))}
-            className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
-          >
-            Random
-          </button>
-        </div>
+        <p className="text-xs text-gray-500 mt-1">Select a vocabulary list to generate stories from.</p>
       </div>
 
       {/* Genre */}

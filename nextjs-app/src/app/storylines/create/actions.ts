@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import { Question } from '@prisma/client';
+import { inngest } from '@/app/inngest/client';
 
 // Define static options (matching the template/form component)
 // Consider moving these to a shared constants file if used elsewhere
@@ -32,67 +32,74 @@ function sampleSize<T>(arr: T[], n: number): T[] {
   return shuffled.slice(0, n);
 }
 
-// Type definition for the expected structure of serialized questions
-type SerializedQuestion = {
-    id: number;
-    type: string;
-    question: string;
-    key: string;
-    correct: string;
-    answers: string[] | null; // Match orm.py structure
-    classroom: string;
-};
+// Helper function to select words from vocab based on storyline progress
+async function selectWordsFromVocab(vocabId: number): Promise<string[]> {
+  try {
+    // Fetch the vocab
+    const vocab = await (prisma as any).vocab.findUnique({
+      where: { id: vocabId },
+    });
+
+    if (!vocab) {
+      throw new Error(`Vocab with ID ${vocabId} not found`);
+    }
+
+    // Parse the comma-separated word list
+    const allWords = vocab.list.split(',').map((word: string) => word.trim()).filter((word: string) => word.length > 0);
+    
+    if (allWords.length === 0) {
+      throw new Error(`No words found in vocab ${vocabId}`);
+    }
+
+    // For now, return a sample of words (up to 5)
+    // TODO: Implement storyline progress logic to select words based on:
+    // - Words with no storyline_progress first
+    // - Then words with highest attempts (at least 2 attempts)
+    // - Then words with longest duration
+    const maxWords = Math.min(5, allWords.length);
+    return sampleSize(allWords, maxWords);
+
+  } catch (error) {
+    console.error("Error selecting words from vocab:", error);
+    // Fallback to some default words if vocab fetch fails
+    return ['cat', 'dog', 'house', 'tree', 'book'];
+  }
+}
 
 export async function createStorylineAction(formData: FormData) {
   // 1. Extract data from FormData
-  const selectedQuestionIds = formData.getAll('selected_questions').map(id => parseInt(id as string, 10)).filter(id => !isNaN(id));
+  const selectedVocabId = formData.get('selected_vocab') as string;
   const genre = formData.get('genres') as string || null; // Handle empty selection
   const location = formData.get('locations') as string || null;
   const style = formData.get('styles') as string || null;
   const interests = formData.getAll('interests') as string[];
   const friends = formData.getAll('friends') as string[];
-  // const genTtl = formData.get('gen_ttl') === 'on'; // Example if checkbox was used
 
-  let questionList: Question[] = [];
-  let serializedQuestions: SerializedQuestion[] = [];
-
-  // 2. Fetch selected Question objects from DB
-  if (selectedQuestionIds.length > 0) {
-    try {
-      questionList = await prisma.question.findMany({
-        where: {
-          id: { in: selectedQuestionIds },
-        },
-      });
-
-      // Serialize fetched questions for storing in original_request
-      serializedQuestions = questionList.map(q => ({
-        id: q.id,
-        type: q.type,
-        question: q.question,
-        key: q.key,
-        correct: q.correct,
-        answers: q.answers ? q.answers.split(',') : null, // Split answers string
-        classroom: q.classroom,
-      }));
-
-      if (questionList.length !== selectedQuestionIds.length) {
-        console.warn(`Could not find all selected questions. Found ${questionList.length} out of ${selectedQuestionIds.length} requested.`);
-        // Handle discrepancy if needed (e.g., throw error or proceed)
-      }
-    } catch (error) {
-      console.error("Error fetching selected questions:", error);
-      // Consider returning an error message to the user
-      throw new Error("Failed to fetch selected questions.");
-    }
-  } else {
-    console.info("No questions selected for the new storyline.");
+  // Validate vocab selection
+  if (!selectedVocabId) {
+    throw new Error("Please select a vocabulary list.");
   }
 
-  // 3. Construct the storyline_data JSON object (similar to FastAPI)
+  const vocabId = parseInt(selectedVocabId, 10);
+  if (isNaN(vocabId)) {
+    throw new Error("Invalid vocabulary selection.");
+  }
+
+  // 2. Select words from the chosen vocab based on storyline progress
+  let selectedWords: string[] = [];
+  try {
+    selectedWords = await selectWordsFromVocab(vocabId);
+    console.log(`Selected ${selectedWords.length} words from vocab ${vocabId}: ${selectedWords.join(', ')}`);
+  } catch (error) {
+    console.error("Error selecting words from vocab:", error);
+    throw new Error("Failed to select words from vocabulary.");
+  }
+
+  // 3. Construct the storyline_data JSON object
   // Use selected values or random defaults if not selected
   const storylineData = {
-    question_list: serializedQuestions,
+    vocab_id: vocabId,
+    words: selectedWords, // Array of words from the vocab
     genre: genre ?? GENRES[getRandomInt(0, GENRES.length - 1)],
     location: location ?? LOCATIONS[getRandomInt(0, LOCATIONS.length - 1)],
     style: style ?? STYLES[getRandomInt(0, STYLES.length - 1)],
@@ -102,13 +109,21 @@ export async function createStorylineAction(formData: FormData) {
 
   // 4. Create Storyline record in the database
   try {
-    await prisma.storyline.create({
+    const storyline = await prisma.storyline.create({
       data: {
         original_request: JSON.stringify(storylineData), // Store the constructed data as JSON
         status: 'pending', // Set initial status
         // storyline_id is auto-generated
       },
     });
+
+    await inngest.send({
+      name: 'story/generate',
+      data: {
+        storylineId: storyline.storyline_id,
+      },
+    });
+    console.log("Successfully created storyline with vocab-based data");
   } catch (error) {
     console.error("Error creating storyline:", error);
     // Consider returning an error message to the user
