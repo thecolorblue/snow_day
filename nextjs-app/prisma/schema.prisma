@@ -125,13 +125,34 @@ model Guardian {
 }
 
 model Student {
-  id          Int       @id @default(autoincrement())
-  name        String
-  friends     String
-  interests   String
-  guardianId  Int?      @map("guardian_id")
-  guardian    Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id            Int            @id @default(autoincrement())
+  name          String
+  friends       String
+  interests     String
+  guardianId    Int?           @map("guardian_id")
+  guardian      Guardian?      @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  student_vocab StudentVocab[]
 
   @@map("student")
+}
+
+model Vocab {
+  id            Int            @id @default(autoincrement())
+  title         String         @db.VarChar(255) // Title/name for the vocabulary list
+  list          String         // Comma separated list of words
+  createdAt     DateTime       @default(now()) @map("created_at")
+  student_vocab StudentVocab[]
+
+  @@map("vocab")
+}
+
+model StudentVocab {
+  id         Int     @id @default(autoincrement())
+  student_id Int
+  vocab_id   Int
+  student    Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  vocab      Vocab   @relation(fields: [vocab_id], references: [id], onDelete: Cascade)
+
+  @@map("student_vocab")
 }

@@ -36,7 +36,7 @@ export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudent
   if (!isOpen) return null;
 
   return (
-    <div className="inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Student</h3>
         

@@ -178,31 +178,11 @@ export default async function StorylineStepPage({ params }: PageProps) {
 
   let markdown = stepDetails.story.content.replace(/\<play-word\>/g, '').replace(/<\/play-word>/g, '');
 
-  const storyMap:StoryMap[] | null = stepDetails.story.map ? JSON.parse(stepDetails.story.map): null;
-  let wordList: StoryMapWord[] = [];
+  const storyMap:StoryMapWord[] = stepDetails.story.map ? JSON.parse(stepDetails.story.map): [];
 
-  if (storyMap) {
-    wordList = storyMap.reduce((list: Array<StoryMapWord>, segment)=> {
-      segment.timeline.forEach((sentence)=> {
-        const addition = sentence.timeline.map(({
-          text, startTime, endTime, startOffsetUtf32, endOffsetUtf32
-        }) => ({
-          type: 'word',
-          text,
-          startTime,
-          endTime,
-          startOffsetUtf32: startOffsetUtf32 || 0,
-          endOffsetUtf32: endOffsetUtf32 || 0
-        }));
-        list = list.concat(addition);
-      })
-      return list;
-    }, []);
-
-    [...wordList].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
-      markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${wordList.length - i - 1}">${text}</span>`);
-    })
-  }
+  [...storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
+    markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${storyMap.length - i - 1}">${text}</span>`);
+  })
 
   // Parse story content from Markdown to HTML
   let storyHtml = await marked(markdown || '');
@@ -231,7 +211,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
-        wordList={wordList}
+        wordList={storyMap}
         storyAudio={stepDetails.story.audio}
         storyHtml={storyHtml}
         questions={questions.slice().sort(() => Math.random() - 0.5)}

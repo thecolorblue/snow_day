@@ -128,7 +128,9 @@ def generate_story(storyline_id: int):
 
         # --- Extract data from request_data ---
         try:
-            question_list_data = request_data['question_list'] # List of dicts
+            # New vocab-based structure
+            words_list = request_data['words'] # List of words from vocab
+            vocab_id = request_data.get('vocab_id') # Optional vocab ID
             genre = request_data['genre']
             location = request_data['location']
             style = request_data['style']
@@ -141,13 +143,12 @@ def generate_story(storyline_id: int):
             print(f"Error: Missing key '{e}' in original_request JSON for storyline {storyline_id}.")
             return None
 
-        if not question_list_data:
-             print(f"Error: 'question_list' is empty in original_request for storyline {storyline_id}.")
+        if not words_list:
+             print(f"Error: 'words' list is empty in original_request for storyline {storyline_id}.")
              return None
 
         # --- Adapt data for existing logic ---
-        word_to_question_map = {q['correct']: q for q in question_list_data}
-        required_words = list(word_to_question_map.keys())
+        required_words = words_list
         interests_string = ", ".join(selected_interests) if selected_interests else "nothing in particular"
 
         print(f"Required words: {required_words}")
@@ -214,35 +215,38 @@ Make the story about 4 paragraphs long.
                 if len(words_in_para) == len(required_words):
                     break
 
-            # Create/retrieve Question objects for words in this paragraph
+            # Create Question objects for words in this paragraph
             para_questions = []
             for word in words_in_para:
                 if word not in all_questions_map:
-                    # Find the original question details from the parsed JSON data
-                    original_question_data = word_to_question_map.get(word) # This is now a dict
-                    if original_question_data:
-                        q_key = original_question_data.get('key')
-                        q_classroom = original_question_data.get('classroom', 'default-classroom') # Extract classroom, provide fallback
-
-                        if not q_key:
-                            print(f"Warning: Missing 'key' for word '{word}' in original_request. Skipping question lookup.")
-                            continue # Skip if key is missing
-
-                        # --- Fetch Question from DB ---
-                        # Assuming 'session' is the active Pony ORM db_session
-                        question_obj = session.query(Question).filter_by(key=q_key, classroom=q_classroom).first()
-
-                        if not question_obj:
-                            print(f"Warning: Question with key='{q_key}' and classroom='{q_classroom}' not found in the database. Skipping.")
-                            # Skip this word if no matching question found in the DB
-                            continue
-
-                        # Add the fetched question to the map for later use in linking
+                    # Create a new 'select' type question for this word
+                    try:
+                        # Generate incorrect answers for the select question
+                        incorrect_answers = gen_incorrect_answers(word, num_incorrect=3)
+                        all_answers = [word] + incorrect_answers
+                        random.shuffle(all_answers)  # Randomize answer order
+                        
+                        # Create the question object
+                        question_obj = Question(
+                            type='select',
+                            question=f"What word best fits in this story?",
+                            key=f"vocab_{vocab_id}_{word}",  # Unique key based on vocab and word
+                            correct=word,
+                            answers=','.join(all_answers),  # Store as comma-separated string
+                            classroom=f"vocab_{vocab_id}"  # Use vocab_id as classroom identifier
+                        )
+                        
+                        # Add to session to persist to database
+                        session.add(question_obj)
+                        session.flush()  # Get the ID without committing
+                        
+                        # Add the created question to the map for later use in linking
                         all_questions_map[word] = question_obj
-                        print(f"Found existing question for '{word}': ID={question_obj.id}, Key='{q_key}', Classroom='{q_classroom}'")
-                    else:
-                        print(f"Warning: Could not find original question data for word: {word}")
-                        continue # Skip if we can't find the base question data
+                        print(f"Created new select question for '{word}': ID={question_obj.id}, Key='{question_obj.key}'")
+                        
+                    except Exception as e:
+                        print(f"Error creating question for word '{word}': {e}")
+                        continue # Skip if we can't create the question
 
                 # Add the Question object (if found/created) to this paragraph's list
                 if word in all_questions_map:
