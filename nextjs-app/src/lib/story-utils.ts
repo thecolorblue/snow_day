@@ -1,6 +1,6 @@
 import { openai } from './openai';
 import { put } from '@vercel/blob';
-import * as Echogarden from 'echogarden';
+import { AlignmentResult, align } from 'echogarden';
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { ProcessedParagraph } from './story-generator';
@@ -98,7 +98,7 @@ const OAIQuestionResponse = z.object({
   answers: z.array(z.string())
 });
 
-const convertAlignmentToWords = function(alignment: Echogarden.AlignmentResult): FAWord[] {
+const convertAlignmentToWords = function(alignment: AlignmentResult): FAWord[] {
   const words: FAWord[] = [];
 
   const findWords = (timeline: any[]) => {
@@ -132,7 +132,7 @@ export async function generateAndUploadAudio(text: string, storylineId: number, 
 
     const audioBuffer = Buffer.from(await response.arrayBuffer());
     const blobName = `snow_day/audio/story_${storylineId}_para_${paragraphIndex}.mp3`;
-    const alignment = await Echogarden.align(audioBuffer, text, {});
+    const alignment = await align(audioBuffer, text, {});
     
     const { url } = await put(blobName, audioBuffer, {
       access: 'public',
