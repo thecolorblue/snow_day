@@ -85,20 +85,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the vocab using raw query to avoid type issues
-    const vocabResult = await prisma.$queryRaw`
-      INSERT INTO vocab (title, list)
-      VALUES (${title}, ${list})
-      RETURNING *
-    `;
-    
-    const vocab = (vocabResult as any)[0];
+    // Create the vocab using Prisma ORM
+    const vocab = await prisma.vocab.create({
+      data: {
+        title,
+        list
+      }
+    });
 
     // Create the relationship between student and vocab
-    await prisma.$queryRaw`
-      INSERT INTO student_vocab (student_id, vocab_id)
-      VALUES (${studentId}, ${vocab.id})
-    `;
+    await prisma.studentVocab.create({
+      data: {
+        student_id: studentId,
+        vocab_id: vocab.id
+      }
+    });
 
     return NextResponse.json(vocab, { status: 201 });
   } catch (error) {

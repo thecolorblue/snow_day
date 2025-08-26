@@ -10,7 +10,7 @@ interface SDApplicationBarProps {
   primary_menu: {
     title: string,
     callback?: ()=> {},
-    icon?: React.ReactNode
+    icon?: React.ReactNode,
     href?: string
   }[]
 }
