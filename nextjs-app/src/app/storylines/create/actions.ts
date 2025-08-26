@@ -2,7 +2,6 @@
 
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import { inngest } from '@/app/inngest/client';
 
 // Define static options (matching the template/form component)
 // Consider moving these to a shared constants file if used elsewhere
@@ -117,12 +116,31 @@ export async function createStorylineAction(formData: FormData) {
       },
     });
 
-    await inngest.send({
-      name: 'story/generate',
-      data: {
-        storylineId: storyline.storyline_id,
-      },
-    });
+    // Make HTTP POST request to Google Cloud Function using google-cloud/functions package
+    const postData = `storyline_id=${storyline.storyline_id}`;
+    
+    // Using fetch for making HTTP requests (Node.js 18+ has built-in fetch)
+    try {
+      const response = await fetch(`${process.env.FUNCTIONS_URL}/generateStory`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData).toString()
+        },
+        body: postData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.text();
+      console.log(`Successfully sent request to generate story. Response: ${result}`);
+    } catch (error) {
+      console.error('Error sending request to generate story:', error);
+      throw new Error('Failed to send request to generate story');
+    }
+    
     console.log("Successfully created storyline with vocab-based data");
   } catch (error) {
     console.error("Error creating storyline:", error);

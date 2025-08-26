@@ -1,0 +1,25 @@
+{
+  "name": "gcp-functions",
+  "version": "1.0.0",
+  "description": "GCP Cloud Functions for Story Generation",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "functions-framework --target=generateStory",
+    "deploy": "./deploy.sh",
+    "gcp-build": "tsc",
+    "postinstall": "npx prisma generate"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.0.0",
+    "@prisma/client": "^6.6.0",
+    "@google-cloud/storage": "^7.11.0",
+    "echogarden": "^2.9.2",
+    "openai": "^5.13.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "gts": "^5.0.0",
+    "typescript": "^5.0.0"
+  }
+}

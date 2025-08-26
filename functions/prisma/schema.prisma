@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client" // Use suggested .prisma path
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Story {
+  id             Int             @id @default(autoincrement())
+  content        String
+  audio          String? // Assuming Text maps to String in Prisma and making it optional
+  map            String?
+  story_question StoryQuestion[]
+  storyline_step StorylineStep[]
+
+  @@map("story")
+}
+
+model Question {
+  id             Int             @id @default(autoincrement())
+  type           String
+  question       String
+  key            String
+  correct        String
+  answers        String?
+  classroom      String
+  story_question StoryQuestion[]
+
+  @@map("question")
+}
+
+model StoryQuestion {
+  id                 Int                 @id @default(autoincrement())
+  story_id           Int
+  question_id        Int
+  question           Question            @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  story              Story               @relation(fields: [story_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  storyline_progress StorylineProgress[]
+
+  @@map("story_question")
+}
+
+model Storyline {
+  storyline_id       Int                 @id @default(autoincrement())
+  original_request   String?
+  status             String              @db.VarChar
+  storyline_progress StorylineProgress[]
+  storyline_step     StorylineStep[]
+
+  @@map("storyline")
+}
+
+model StorylineStep {
+  storyline_step_id  Int                 @id @default(autoincrement())
+  storyline_id       Int
+  step               Int
+  story_id           Int
+  storyline_progress StorylineProgress[]
+  story              Story               @relation(fields: [story_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  storyline          Storyline           @relation(fields: [storyline_id], references: [storyline_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("storyline_step")
+}
+
+model StorylineProgress {
+  storyline_progress_id Int           @id @default(autoincrement())
+  story_question_id     Int
+  duration              Int?
+  score                 Int?
+  attempts              Int?
+  createdAt             DateTime?     @map("created_at") @db.Timestamp(6)
+  storyline_id          Int
+  storyline_step_id     Int
+  story_question        StoryQuestion @relation(fields: [story_question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  storyline             Storyline     @relation(fields: [storyline_id], references: [storyline_id], onDelete: NoAction, onUpdate: NoAction)
+  storyline_step        StorylineStep @relation(fields: [storyline_step_id], references: [storyline_step_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("storyline_progress")
+}
+
+model TaskQueue {
+  id        Int        @id @default(autoincrement())
+  title     String     @db.VarChar(255)
+  status    taskstatus
+  context   Json?      @db.Json
+  priority  Int?
+  createdAt DateTime   @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("task_queue")
+}
+
+model alembic_version {
+  version_num String @id(map: "alembic_version_pkc") @db.VarChar(32)
+}
+
+enum taskstatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model Document {
+  id                 Int      @id @default(autoincrement())
+  url                String   @unique // URL from Vercel Blob
+  pathname           String   @unique // Pathname from Vercel Blob
+  contentType        String?  // Content type of the file
+  contentDisposition String   // How the file should be treated by the browser
+  uploadedAt         DateTime @default(now()) @map("uploaded_at")
+
+  @@map("document")
+}
+
+model Guardian {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  students  Student[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("guardian")
+}
+
+model Student {
+  id            Int            @id @default(autoincrement())
+  name          String
+  friends       String
+  interests     String
+  guardianId    Int?           @map("guardian_id")
+  guardian      Guardian?      @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  student_vocab StudentVocab[]
+
+  @@map("student")
+}
+
+model Vocab {
+  id            Int            @id @default(autoincrement())
+  title         String         @db.VarChar(255) // Title/name for the vocabulary list
+  list          String         // Comma separated list of words
+  createdAt     DateTime       @default(now()) @map("created_at")
+  student_vocab StudentVocab[]
+
+  @@map("vocab")
+}
+
+model StudentVocab {
+  id         Int     @id @default(autoincrement())
+  student_id Int
+  vocab_id   Int
+  student    Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  vocab      Vocab   @relation(fields: [vocab_id], references: [id], onDelete: Cascade)
+
+  @@map("student_vocab")
+}
