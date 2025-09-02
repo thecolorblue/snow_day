@@ -42,17 +42,18 @@ const SpeedComponent: React.FC<SpeedComponentProps> = ({
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.MouseEvent<HTMLInputElement>) => {
     // Called when touch dragging ends
     if (speed !== previousValueRef.current) {
       onSpeedUpdate(speed);
       previousValueRef.current = speed;
+    } else {
+      handleClick(e);
     }
   };
 
   return (
     <div className="speed-component flex items-center gap-2">
-      <span className="text-sm text-gray-600">{min}x</span>
       <input
         type="range"
         min={min}
@@ -65,8 +66,6 @@ const SpeedComponent: React.FC<SpeedComponentProps> = ({
         onTouchEnd={handleTouchEnd}
         className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
       />
-      <span className="text-sm text-gray-600">{max}x</span>
-      <span className="text-sm font-medium min-w-[3rem]">{speed.toFixed(1)}x</span>
     </div>
   );
 };

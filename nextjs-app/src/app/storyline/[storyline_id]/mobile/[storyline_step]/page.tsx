@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import StoryPageController from '@/components/StoryPageController';
+import BackButton from '@/components/BackButton';
 import { marked } from 'marked';
 import { getStorylineStepDetails, getStorylineDetails } from '@/lib/storyline-utils';
 
@@ -29,9 +30,12 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
   const stepDetails = await getStorylineStepDetails(storylineId, storylineStep);
   const storylineDetails = await getStorylineDetails(storylineId);
 
+
   if (!stepDetails) {
     notFound(); // Return 404 if step details are not found
   }
+  const storyMap = stepDetails.story.map ? JSON.parse(stepDetails.story.map): [];
+  const questions = stepDetails.story.story_question.map((sq) => sq.question);
 
   // Ensure the fetched step belongs to the correct storyline
   if (stepDetails.storyline_id !== storylineId) {
@@ -41,10 +45,12 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
 
   let markdown = stepDetails.story.content.replace(/\<play-word\>/g, '').replace(/<\/play-word>/g, '');
 
-  const storyMap = stepDetails.story.map ? JSON.parse(stepDetails.story.map): [];
 
   [...storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
-    markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${storyMap.length - i - 1}">${text}</span>`);
+    const matchingQuestion = questions.find(q => q.correct.toLowerCase() === text.toLowerCase());
+    const classList = `class="word word-${storyMap.length - i - 1} ${matchingQuestion?'question-word': ''}"`;
+
+    markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span ${classList}>${text}</span>`);
   })
 
   // Parse story content from Markdown to HTML
@@ -52,25 +58,14 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
 
   storyHtml = storyHtml.replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&gt;/g, '>')
 
-  // Extract questions from the nested structure
-  const questions = stepDetails.story.story_question.map((sq: any) => sq.question);
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="story-page min-h-screen bg-gray-50">
       {/* Mobile Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => window.history.back()}
-                className="p-2 rounded-full hover:bg-gray-100"
-                aria-label="Go back"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+              <BackButton />
               <div>
                 <h1 className="text-lg font-semibold">Story {storylineStep}</h1>
                 <p className="text-sm text-gray-500">Storyline {storylineId}</p>

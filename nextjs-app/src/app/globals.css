@@ -56,3 +56,60 @@ body {
 .justify-between {
   justify-content: space-between;
 }
+
+.highlighted-word {
+  background-color: blue;
+  color: white;
+}
+
+.question-word {
+  color: white;
+  text-decoration: underline;
+  text-decoration-color: black;
+  cursor: pointer;
+}
+.question-word.highlighted-word {
+  color: #00f !important;
+}
+.question-word:hover {
+  background-color: rgba(206, 239, 248, 0.2);
+}
+.slider {
+  writing-mode: vertical-lr;
+    direction: rtl;
+    appearance: slider-vertical;
+    width: 16px;
+    vertical-align: bottom;
+    height: 64vh;
+}
+.story-page {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.story-page-controller {
+  display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-around;
+    align-content: space-around;
+    flex-wrap: wrap;
+}
+
+.speed-component-container {
+  width: 10vw;
+  max-height: 69vh;
+}
+
+.page-component {
+  height: 100%;
+}
+.story-content {
+  height: 100%;
+}
+
+.page-component-container {
+  width: 79vw;
+  max-height: 69vh;
+}

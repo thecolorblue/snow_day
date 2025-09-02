@@ -126,18 +126,8 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
         onEnded={() => console.log('Audio ended')}
       />
 
-      {/* Speed Control */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium mb-2">Playback Speed</h3>
-        <SpeedComponent
-          onToggle={handleToggle}
-          onSpeedUpdate={handleSpeedUpdate}
-        />
-      </div>
-
       {/* Story Content */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium mb-2">Story</h3>
+      <div className="bg-white p-4 rounded-lg shadow page-component-container">
         <PageComponent
           ref={pageRef}
           text={storyHtml}
@@ -146,6 +136,14 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
           onScrollStart={handleScrollStart}
           onScrollEnd={handleScrollEnd}
           onGuess={handlePageGuess}
+        />
+      </div>
+
+      {/* Speed Control */}
+      <div className="bg-white p-4 rounded-lg shadow speed-component-container">
+        <SpeedComponent
+          onToggle={handleToggle}
+          onSpeedUpdate={handleSpeedUpdate}
         />
       </div>
 
