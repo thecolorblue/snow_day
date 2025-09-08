@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma'; // Import the Prisma client instance
+import { AppHeader } from '@/components';
 
 // Define the expected shape of the data returned by the Prisma query (using snake_case from schema)
 type StorylineQueryResult = {
@@ -132,64 +133,68 @@ export default async function StorylinesDashboard() {
   const storylines: StorylineViewData[] = await getStorylines();
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="text-center mb-5">
-        <h1 className="text-3xl font-bold mb-3">Storylines</h1>
-        <Link href="/storylines/create">
-          <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">
-            Create New Storyline
-          </span>
-        </Link>
-      </div>
+    <>
+      <AppHeader></AppHeader>
+      <div className="container mx-auto p-4">
+        <div className="text-center mb-5">
+          <h1 className="text-3xl font-bold mb-3">Storylines</h1>
+          <Link href="/storylines/create">
+            <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">
+              Create New Storyline
+            </span>
+          </Link>
+        </div>
 
-      <div className="overflow-x-auto shadow-md rounded-lg">
-        <table className="min-w-full bg-white">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '200px' }}>Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {storylines.filter(storyline => storyline.progress !== storyline.step_count).map((storyline) => (
-              <tr key={storyline.storyline_id}>
-                <td className="px-6 py-4 whitespace-normal text-sm text-gray-900">{storyline.first_step_content_preview}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style={{ minWidth: '200px' }}>
-                  <div className="flex items-center">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mr-2">
-                      <div
-                        className="bg-blue-600 h-2.5 rounded-full"
-                        style={{ width: `${(storyline.progress / storyline.step_count) * 100}%` }}
-                      ></div>
-                    </div>
-                    <span>{storyline.progress}/{storyline.step_count}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                  {[...storyline.unique_questions].join(', ')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {/* Adjust link as needed - maybe link to first step if steps > 0 */}
-                  {storyline.step_count > 0 ? (
-                     <Link href={`/storyline/${storyline.storyline_id}/page/1`}>
-                       <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Start</button>
-                     </Link>
-                  ) : (
-                    <span className="text-gray-400">No Steps</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {storylines.length === 0 && (
+        <div className="overflow-x-auto shadow-md rounded-lg">
+          <table className="min-w-full bg-white">
+            <thead className="bg-gray-100">
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No storylines found.</td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '200px' }}>Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {storylines.filter(storyline => storyline.progress !== storyline.step_count).map((storyline) => (
+                <tr key={storyline.storyline_id}>
+                  <td className="px-6 py-4 whitespace-normal text-sm text-gray-900">{storyline.first_step_content_preview}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style={{ minWidth: '200px' }}>
+                    <div className="flex items-center">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mr-2">
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full"
+                          style={{ width: `${(storyline.progress / storyline.step_count) * 100}%` }}
+                        ></div>
+                      </div>
+                      <span>{storyline.progress}/{storyline.step_count}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                    {[...storyline.unique_questions].join(', ')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {/* Adjust link as needed - maybe link to first step if steps > 0 */}
+                    {storyline.step_count > 0 ? (
+                      <Link href={`/storyline/${storyline.storyline_id}/page/1`}>
+                        <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Start</button>
+                      </Link>
+                    ) : (
+                      <span className="text-gray-400">No Steps</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {storylines.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No storylines found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
+
   );
 }

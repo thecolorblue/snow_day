@@ -24,16 +24,19 @@ const AudioComponent = forwardRef<AudioComponentRef, AudioComponentProps>(
     useImperativeHandle(ref, () => ({
       pause: () => {
         if (audioRef.current) {
+          console.log('pausing');
           audioRef.current.pause();
         }
       },
       seek: (time: number) => {
         if (audioRef.current) {
+          console.log('seeking');
           audioRef.current.currentTime = time;
         }
       },
       play: () => {
         if (audioRef.current) {
+          console.log('playing');
           audioRef.current.play().catch(console.error);
         }
       },
@@ -42,6 +45,7 @@ const AudioComponent = forwardRef<AudioComponentRef, AudioComponentProps>(
       },
       updateSpeed: (speed: number) => {
         if (audioRef.current) {
+          console.log('updating speed');
           audioRef.current.playbackRate = speed;
         }
       }
