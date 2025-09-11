@@ -145,53 +145,67 @@ export default async function StorylinesDashboard() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto shadow-md rounded-lg">
-          <table className="min-w-full bg-white">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ minWidth: '200px' }}>Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {storylines.filter(storyline => storyline.progress !== storyline.step_count).map((storyline) => (
-                <tr key={storyline.storyline_id}>
-                  <td className="px-6 py-4 whitespace-normal text-sm text-gray-900">{storyline.first_step_content_preview}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style={{ minWidth: '200px' }}>
-                    <div className="flex items-center">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mr-2">
-                        <div
-                          className="bg-blue-600 h-2.5 rounded-full"
-                          style={{ width: `${(storyline.progress / storyline.step_count) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span>{storyline.progress}/{storyline.step_count}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {storylines.filter(storyline => storyline.progress !== storyline.step_count).map((storyline) => (
+            <div key={storyline.storyline_id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              {/* Title/Preview */}
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Storyline #{storyline.storyline_id}</h3>
+                <p className="text-sm text-gray-700 leading-relaxed">{storyline.first_step_content_preview}</p>
+              </div>
+
+              {/* Status/Progress */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-600">Progress</span>
+                  <span className="text-sm text-gray-500">{storyline.progress}/{storyline.step_count}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${(storyline.progress / storyline.step_count) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Questions */}
+              <div className="mb-4">
+                <span className="text-sm font-medium text-gray-600 block mb-2">Questions</span>
+                <div className="text-sm text-gray-700">
+                  {storyline.unique_questions.size > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {[...storyline.unique_questions].map((question, index) => (
+                        <span key={index} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                          {question}
+                        </span>
+                      ))}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                    {[...storyline.unique_questions].join(', ')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {/* Adjust link as needed - maybe link to first step if steps > 0 */}
-                    {storyline.step_count > 0 ? (
-                      <Link href={`/storyline/${storyline.storyline_id}/page/1`}>
-                        <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Start</button>
-                      </Link>
-                    ) : (
-                      <span className="text-gray-400">No Steps</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {storylines.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No storylines found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  ) : (
+                    <span className="text-gray-400 text-xs">No questions</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end">
+                {storyline.step_count > 0 ? (
+                  <Link href={`/storyline/${storyline.storyline_id}/page/1`}>
+                    <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                      Start
+                    </button>
+                  </Link>
+                ) : (
+                  <span className="text-gray-400 text-sm">No Steps</span>
+                )}
+              </div>
+            </div>
+          ))}
+          
+          {storylines.filter(storyline => storyline.progress !== storyline.step_count).length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500 text-lg">No active storylines found.</p>
+            </div>
+          )}
         </div>
       </div>
     </>

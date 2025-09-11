@@ -1,6 +1,7 @@
 import Link from 'next/link';
 // Remove prisma and Question imports as they are handled in QuestionLoader
 import QuestionLoader from './QuestionLoader'; // Import the new loader component
+import AppHeader from '@/components/AppHeader';
 
 export const dynamic = 'force-dynamic'; // Explicitly mark page as dynamic
 // Define static options (matching the template)
@@ -22,6 +23,8 @@ export default async function CreateStorylinePage({
   const searchParamsResults = await searchParams;
 
   return (
+    <>
+    <AppHeader></AppHeader>
     <div className="container mx-auto p-4 max-w-2xl">
        <div className="text-center mb-6">
          <Link href="/storylines" className="text-blue-600 hover:underline">
@@ -40,6 +43,6 @@ export default async function CreateStorylinePage({
         interests={INTERESTS}
         friends={FRIENDS}
       />
-    </div>
+    </div></>
   );
 }

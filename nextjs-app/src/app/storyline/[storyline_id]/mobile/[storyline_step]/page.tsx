@@ -49,8 +49,12 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
   [...storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
     const matchingQuestion = questions.find(q => q.correct.toLowerCase() === text.toLowerCase());
     const classList = `class="word word-${storyMap.length - i - 1} ${matchingQuestion?'question-word': ''}"`;
-
-    markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span ${classList}>${text}</span>`);
+    
+    if (matchingQuestion) {
+      markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<question-element word="${text}" answers="${matchingQuestion?.answers}">${text}</question-element>`);
+    } else {
+      markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span ${classList} data-word-index="${storyMap.length - i - 1}">${text}</span>`);
+    }
   })
 
   // Parse story content from Markdown to HTML

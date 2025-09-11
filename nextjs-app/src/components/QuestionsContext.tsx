@@ -6,7 +6,7 @@ import { Question } from '@prisma/client';
 export interface QuestionStatus {
   id: number;
   question: Question;
-  status: 'pending' | 'complete';
+  status: 'pending' | 'correct';
   userAnswer?: string;
 }
 
@@ -44,7 +44,7 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
   }, [questions]);
 
   const allQuestionsCompleted = useCallback(() => {
-    return questions.length > 0 && questions.every(q => q.status === 'complete');
+    return questions.length > 0 && questions.every(q => q.status === 'correct');
   }, [questions]);
 
   const guess = useCallback((questionId: number, answer: string) => {
@@ -54,7 +54,7 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
           const isCorrect = answer.toLowerCase().trim() === q.question.correct.toLowerCase().trim();
           return {
             ...q,
-            status: isCorrect ? 'complete' as const : q.status,
+            status: isCorrect ? 'correct' as const : q.status,
             userAnswer: answer
           };
         }

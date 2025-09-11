@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
-import { useQuestions } from './QuestionsContext';
+import { QuestionController, useQuestions } from './QuestionsContext';
 import { match } from 'assert';
+import './QuestionComponent';
 
 export interface StoryMapWord {
   type: string;
@@ -35,7 +36,7 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
     const [highlightedWordIndex, setHighlightedWordIndex] = useState<number | null>(null);
     const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const { getQuestions } = useQuestions();
+    const { getQuestions, guess } = useQuestions();
 
     useImperativeHandle(ref, () => ({
       updateHighlighter: (timeUpdate: number) => {
@@ -115,6 +116,7 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
 
     // Handle word clicks for questions
     const handleWordClick = (wordIndex: number, word: StoryMapWord) => {
+      console.log(`question word clicked: ${wordIndex} ${word.text}`)
       const questions = getQuestions();
       const matchingQuestion = questions.find(q => 
         q.question.correct.toLowerCase() === word.text.toLowerCase()
@@ -145,9 +147,15 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
 
       const handleClick = (e: Event) => {
         const target = e.target as HTMLElement;
+        
+        // Only handle clicks on elements with 'word' class
+        if (!target.classList.contains('word')) {
+          return;
+        }
+        
         const wordIndex = target.getAttribute('data-word-index');
         
-        if (wordIndex && target.classList.contains('question-word')) {
+        if (wordIndex) {
           const index = parseInt(wordIndex, 10);
           const word = textMap[index];
           if (word) {
@@ -155,17 +163,27 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
           }
         }
       };
+      // Handle the custom event from the Lit component
+      const handleAnswerSelected = (event: CustomEvent<{ word: string; answer: string }>) => {
+        const matchingQuestion = getQuestions().find(q => q.question.correct === event.detail.word);
 
-      container.addEventListener('click', handleClick);
-      return () => container.removeEventListener('click', handleClick);
-    }, [textMap]);
+        if (matchingQuestion) {
+          guess(matchingQuestion.id, event.detail.answer);
 
-    // Get active question details
-    const activeQuestion = activeQuestionId ? 
-      getQuestions().find(q => q.id === activeQuestionId) : null;
+          //@ts-ignore
+          event.target.setAttribute('state', matchingQuestion.question.correct === event.detail.answer ? 'correct': 'incorrect');
+        }
+      };
 
-    const activeQuestionAnswers = activeQuestion?.question.answers ?
-      activeQuestion.question.answers.split(',').map((a: string) => a.trim()) : [];
+      // Add event listener to the document
+      //@ts-ignore
+      document.addEventListener('answer-selected', handleAnswerSelected);
+
+      return () => {
+        //@ts-ignore
+        document.removeEventListener('answer-selected', handleAnswerSelected);
+      };
+    }, [textMap, getQuestions, guess]);
 
     return (
       <div className="page-component relative">
@@ -176,30 +194,6 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
         >
           <div dangerouslySetInnerHTML={{ __html: text }} />
         </div>
-
-        {/* Question answers popup */}
-        {activeQuestion && (
-          <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-white rounded-lg shadow-lg z-10">
-            <h4 className="font-medium mb-2">{activeQuestion.question.question}</h4>
-            <div className="space-y-2">
-              {activeQuestionAnswers.map((answer: string, index: number) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswerClick(activeQuestion.id, answer)}
-                  className="block w-full text-left p-2 rounded hover:bg-gray-100"
-                >
-                  {answer}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setActiveQuestionId(null)}
-              className="mt-2 text-sm text-gray-500 hover:text-gray-700"
-            >
-              Close
-            </button>
-          </div>
-        )}
       </div>
     );
   }

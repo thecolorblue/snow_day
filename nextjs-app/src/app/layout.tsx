@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Chewy, Lexend_Deca } from "next/font/google"; // Import Chewy and Lexend Deca fonts
+import { Outfit, Lexend_Deca } from "next/font/google"; // Import Outfit and Lexend Deca fonts
 import Link from "next/link"; // Import Link
 import Providers from "./Providers";
 import SDApplicationBar from "@/components/SDApplicationBar";
@@ -7,11 +7,11 @@ import AppHeader from "@/components/AppHeader";
 import "./globals.css";
 import { BookOpen, PlusCircle } from 'lucide-react';
 
-// Instantiate Chewy font
-const chewy = Chewy({
-  variable: "--font-chewy", // Define CSS variable for Chewy
+// Instantiate Outfit font
+const outfit = Outfit({
+  variable: "--font-outfit", // Define CSS variable for Outfit
   subsets: ["latin"],
-  weight: "400", // Chewy only supports 400 weight
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"], // Outfit supports multiple weights
 });
 // Instantiate Lexend Deca font
 const lexendDeca = Lexend_Deca({
@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${chewy.variable} ${lexendDeca.variable} antialiased`}> {/* Apply Chewy and Lexend Deca font variables */}
+      <body className={`${outfit.variable} ${lexendDeca.variable} antialiased`}> {/* Apply Outfit and Lexend Deca font variables */}
         <Providers>
           <main>{children}</main> {/* Wrap children in main for semantics */}
         </Providers>

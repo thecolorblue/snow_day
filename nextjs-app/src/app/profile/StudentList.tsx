@@ -1,5 +1,7 @@
 "use client";
 
+import { AppHeader } from "@/components";
+
 interface Student {
   id: number;
   name: string;
@@ -15,6 +17,7 @@ interface StudentListProps {
 export default function StudentList({ students, onRemoveStudent }: StudentListProps) {
   return (
     <>
+      <AppHeader></AppHeader>
       {/* Students List */}
       {students && students.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

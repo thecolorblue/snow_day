@@ -36,14 +36,16 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   const pageRef = useRef<PageComponentRef>(null);
   const questionController = useQuestionController();
 
-  useEffect(() => {
-    setupListeners();
-  }, []);
+  // useEffect(() => {
+  //   if (questions && questions.length > 0) {
+  //     setupListeners();
+  //   }
+  // }, [questions]);
 
-  const setupListeners = () => {
-    // Set up questions in the controller
-    questionController.setQuestions(questions, handleGuess);
-  };
+  // const setupListeners = () => {
+  //   // Set up questions in the controller
+  //   questionController.setQuestions(questions, handleGuess);
+  // };
 
   const handleSpeedUpdate = (speed: number) => {
     audioRef.current?.updateSpeed(speed);

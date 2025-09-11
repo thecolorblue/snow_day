@@ -1,14 +1,57 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '@/lib/prisma';
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+const providers: any[] = [
+  GoogleProvider({
+    clientId: process.env.GOOGLE_CLIENT_ID as string,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+  }),
+];
+
+// Add development authentication provider only in development mode
+if (isDevelopment) {
+  providers.push(
+    CredentialsProvider({
+      id: 'dev-auth',
+      name: 'Development Auth',
+      credentials: {
+        email: {
+          label: 'Email',
+          type: 'email',
+          placeholder: 'test@example.com'
+        },
+        name: {
+          label: 'Name',
+          type: 'text',
+          placeholder: 'Test User'
+        }
+      },
+      async authorize(credentials) {
+        // Only allow in development
+        if (!isDevelopment) {
+          return null;
+        }
+
+        // Simple validation - just check if email is provided
+        if (credentials?.email) {
+          return {
+            id: 'dev-user',
+            email: credentials.email,
+            name: credentials.name || 'Test User',
+          };
+        }
+        return null;
+      },
+    })
+  );
+}
+
 const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
-  ],
+  providers,
   callbacks: {
     async signIn({ user, account, profile }) {
       if (user.email) {
