@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { getStorylineStepDetails, getStorylineDetails } from '@/lib/storyline-utils';
 import { QuestionsProvider } from '@/components/QuestionsContext';
 import StoryContentWrapper from '@/components/StoryContentWrapper';
+import StorylineNavigationButtons from '@/components/StorylineNavigationButtons';
 
 // Define the props for the mobile page component
 interface MobilePageProps {
@@ -46,7 +47,8 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
   }
 
   return (
-    <div className="story-page min-h-screen bg-gray-50">
+    <QuestionsProvider>
+      <div className="story-page min-h-screen bg-gray-50">
       {/* Mobile Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="px-4 py-3">
@@ -108,35 +110,12 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
       </div>
 
       {/* Mobile Navigation */}
-      <div className="bg-white border-t px-4 py-3">
-        <div className="flex justify-between items-center">
-          {storylineStep > 1 && (
-            <a
-              href={`/storyline/${storylineId}/mobile/${storylineStep - 1}`}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="text-sm">Previous</span>
-            </a>
-          )}
-          
-          <div className="flex-1" />
-          
-          {storylineDetails && storylineStep < Object.keys(storylineDetails.progress).length && (
-            <a
-              href={`/storyline/${storylineId}/mobile/${storylineStep + 1}`}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <span className="text-sm">Next</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          )}
-        </div>
+      <StorylineNavigationButtons
+        storylineId={storylineId}
+        storylineStep={storylineStep}
+        storylineDetails={storylineDetails}
+      />
       </div>
-    </div>
+    </QuestionsProvider>
   );
 }

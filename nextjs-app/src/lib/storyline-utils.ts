@@ -131,3 +131,34 @@ export async function getStorylineStepDetails(storylineId: number, storylineStep
     return null;
   }
 }
+
+export async function getQuestionsForStorylineStep(storylineId: number, storylineStep: number): Promise<Question[]> {
+  try {
+    const stepDetails = await prisma.storylineStep.findFirst({
+      where: {
+        storyline_id: storylineId,
+        step: storylineStep,
+      },
+      include: {
+        story: {
+          include: {
+            story_question: {
+              include: {
+                question: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!stepDetails || !stepDetails.story) {
+      return [];
+    }
+
+    return stepDetails.story.story_question.map((sq: any) => sq.question);
+  } catch (error) {
+    console.error(`Error fetching questions for storyline ${storylineId}, step ${storylineStep}:`, error);
+    return [];
+  }
+}

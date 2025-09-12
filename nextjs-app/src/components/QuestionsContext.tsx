@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Question } from '@prisma/client';
 
 export interface QuestionStatus {
@@ -11,11 +11,9 @@ export interface QuestionStatus {
 }
 
 interface QuestionsContextType {
-  questions: QuestionStatus[];
-  setQuestions: (questions: Question[], onGuess: (questionId: number, isCorrect: boolean) => void) => void;
   getQuestions: () => QuestionStatus[];
-  allQuestionsCompleted: () => boolean;
   guess: (questionId: number, answer: string) => void;
+  setQuestions: (questions: Question[]) => void;
 }
 
 const QuestionsContext = createContext<QuestionsContextType | undefined>(undefined);
@@ -26,58 +24,41 @@ interface QuestionsProviderProps {
 
 export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }) => {
   const [questions, setQuestionsState] = useState<QuestionStatus[]>([]);
-  const [onGuessCallback, setOnGuessCallback] = useState<((questionId: number, isCorrect: boolean) => void) | null>(null);
 
-  const setQuestions = useCallback((newQuestions: Question[], onGuess: (questionId: number, isCorrect: boolean) => void) => {
+  const setQuestions = (newQuestions: Question[]) => {
     const questionStatuses: QuestionStatus[] = newQuestions.map(q => ({
       id: q.id,
       question: q,
-      status: 'pending' as const,
+      status: 'pending',
       userAnswer: undefined
     }));
     setQuestionsState(questionStatuses);
-    setOnGuessCallback(() => onGuess);
-  }, []);
+  };
 
-  const getQuestions = useCallback(() => {
+  const getQuestions = () => {
     return questions;
-  }, [questions]);
+  };
 
-  const allQuestionsCompleted = useCallback(() => {
-    return questions.length > 0 && questions.every(q => q.status === 'correct');
-  }, [questions]);
-
-  const guess = useCallback((questionId: number, answer: string) => {
-    setQuestionsState(prev => {
-      const updated = prev.map(q => {
+  const guess = (questionId: number, answer: string) => {
+    setQuestionsState(prev =>
+      prev.map(q => {
         if (q.id === questionId) {
           const isCorrect = answer.toLowerCase().trim() === q.question.correct.toLowerCase().trim();
           return {
             ...q,
-            status: isCorrect ? 'correct' as const : q.status,
+            status: isCorrect ? 'correct' : q.status,
             userAnswer: answer
           };
         }
         return q;
-      });
-
-      // Call the onGuess callback if it exists
-      const question = prev.find(q => q.id === questionId);
-      if (question && onGuessCallback) {
-        const isCorrect = answer.toLowerCase().trim() === question.question.correct.toLowerCase().trim();
-        onGuessCallback(questionId, isCorrect);
-      }
-
-      return updated;
-    });
-  }, [onGuessCallback]);
+      })
+    );
+  };
 
   const value: QuestionsContextType = {
-    questions,
-    setQuestions,
     getQuestions,
-    allQuestionsCompleted,
-    guess
+    guess,
+    setQuestions
   };
 
   return (
@@ -93,35 +74,4 @@ export const useQuestions = (): QuestionsContextType => {
     throw new Error('useQuestions must be used within a QuestionsProvider');
   }
   return context;
-};
-
-// QuestionController class for imperative API
-export class QuestionController {
-  private questionsContext: QuestionsContextType;
-
-  constructor(questionsContext: QuestionsContextType) {
-    this.questionsContext = questionsContext;
-  }
-
-  setQuestions(questions: Question[], onGuess: (questionId: number, isCorrect: boolean) => void) {
-    this.questionsContext.setQuestions(questions, onGuess);
-  }
-
-  getQuestions(): QuestionStatus[] {
-    return this.questionsContext.getQuestions();
-  }
-
-  allQuestionsCompleted(): boolean {
-    return this.questionsContext.allQuestionsCompleted();
-  }
-
-  guess(questionId: number, answer: string) {
-    this.questionsContext.guess(questionId, answer);
-  }
-}
-
-// Hook to get QuestionController instance
-export const useQuestionController = (): QuestionController => {
-  const questionsContext = useQuestions();
-  return new QuestionController(questionsContext);
 };

@@ -4,4 +4,4 @@ export { default as SummaryComponent } from './SummaryComponent';
 export { default as PageComponent } from './PageComponent';
 export { default as StoryPageController } from './StoryPageController';
 export { default as AppHeader } from './AppHeader';
-export { QuestionsProvider, useQuestions, useQuestionController } from './QuestionsContext';
+export { QuestionsProvider, useQuestions } from './QuestionsContext';

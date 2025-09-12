@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
-import { QuestionController, useQuestions } from './QuestionsContext';
+import { useQuestions } from './QuestionsContext';
 import { match } from 'assert';
 import './QuestionComponent';
 
@@ -165,7 +165,7 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
       };
       // Handle the custom event from the Lit component
       const handleAnswerSelected = (event: CustomEvent<{ word: string; answer: string }>) => {
-        const matchingQuestion = getQuestions().find(q => q.question.correct === event.detail.word);
+        const matchingQuestion = getQuestions().find(q => q.question.correct.toLowerCase() === event.detail.word.toLowerCase());
 
         if (matchingQuestion) {
           guess(matchingQuestion.id, event.detail.answer);

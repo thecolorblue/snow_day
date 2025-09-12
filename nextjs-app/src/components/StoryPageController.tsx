@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import AudioComponent, { AudioComponentRef } from './AudioComponent';
 import SpeedComponent from './SpeedComponent';
 import SummaryComponent, { SummaryComponentRef } from './SummaryComponent';
-import { QuestionsProvider, useQuestionController } from './QuestionsContext';
+import { QuestionsProvider, useQuestions } from './QuestionsContext';
 import StoryContentWrapper, { StoryContentWrapperRef, StoryMapWord } from './StoryContentWrapper';
 
 // Local Question type definition to avoid import issues
@@ -34,22 +34,22 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   const audioRef = useRef<AudioComponentRef>(null);
   const summaryRef = useRef<SummaryComponentRef>(null);
   const storyContentRef = useRef<StoryContentWrapperRef>(null);
-  const questionController = useQuestionController();
+  const { getQuestions, guess, setQuestions } = useQuestions();
 
   const shuffledQuestions = useMemo(() => {
     return questions.slice().sort(() => Math.random() - 0.5);
   }, [questions]);
 
-  // useEffect(() => {
-  //   if (questions && questions.length > 0) {
-  //     setupListeners();
-  //   }
-  // }, [questions]);
+  useEffect(() => {
+    if (questions && questions.length > 0) {
+      setupListeners();
+    }
+  }, [questions]);
 
-  // const setupListeners = () => {
-  //   // Set up questions in the controller
-  //   questionController.setQuestions(questions, handleGuess);
-  // };
+  const setupListeners = () => {
+    // Set up questions in the context
+    setQuestions(questions);
+  };
 
   const handleSpeedUpdate = (speed: number) => {
     audioRef.current?.updateSpeed(speed);
@@ -70,7 +70,7 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   const handleGuess = (questionId: number, isCorrect: boolean) => {
     // Find the question details
     const question = questions.find(q => q.id === questionId);
-    const questionStatus = questionController.getQuestions().find(q => q.id === questionId);
+    const questionStatus = getQuestions().find(q => q.id === questionId);
     
     if (question && questionStatus) {
       summaryRef.current?.update({
@@ -82,7 +82,9 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
       });
 
       // Show summary if all questions are completed
-      if (questionController.allQuestionsCompleted()) {
+      const allQuestions = getQuestions();
+      const allCompleted = allQuestions.length > 0 && allQuestions.every(q => q.status === 'correct');
+      if (allCompleted) {
         summaryRef.current?.show();
       }
     }
@@ -151,11 +153,7 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
 };
 
 const StoryPageController: React.FC<StoryPageControllerProps> = (props) => {
-  return (
-    <QuestionsProvider>
-      <StoryPageControllerInner {...props} />
-    </QuestionsProvider>
-  );
+  return <StoryPageControllerInner {...props} />;
 };
 
 export default StoryPageController;

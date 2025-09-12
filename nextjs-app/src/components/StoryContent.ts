@@ -237,17 +237,17 @@ export class StoryContent extends LitElement {
   };
 
   private handleAnswerSelected = (event: CustomEvent<{ word: string; answer: string }>) => {
-    const matchingQuestion = this._questions.find(q => q.question.correct === event.detail.word);
+    const matchingQuestion = this._questions.find(q => q.question.correct.toLowerCase() === event.detail.word.toLowerCase());
 
     if (matchingQuestion) {
-      // this.dispatchEvent(new CustomEvent('question-guess', {
-      //   detail: {
-      //     questionId: matchingQuestion.id,
-      //     answer: event.detail.answer
-      //   },
-      //   bubbles: true,
-      //   composed: true
-      // }));
+      this.dispatchEvent(new CustomEvent('question-guess', {
+        detail: {
+          questionId: matchingQuestion.id,
+          answer: event.detail.answer
+        },
+        bubbles: true,
+        composed: true
+      }));
 
       // Set the state on the target element to show correct/incorrect
       const target = event.target as HTMLElement;

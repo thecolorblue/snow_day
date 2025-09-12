@@ -40,7 +40,7 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const storyElementRef = useRef<any>(null);
-  const { getQuestions, guess, setQuestions } = useQuestions();
+  const { guess } = useQuestions();
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
 
   useEffect(() => {
@@ -50,14 +50,24 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
 
   useEffect(() => {
     const container = containerRef.current;
+    let storyElement;
     if (!container) return;
 
-    // Create the story-content element
-    const storyElement = document.createElement('story-content');
-    storyElementRef.current = storyElement;
-    storyElement.markdown = markdown;
-    storyElement.questions = JSON.stringify(questions);
-    storyElement.storyMap = JSON.stringify(storyMap);
+
+    if (container.children?.[0]?.nodeName === 'STORY-CONTENT') {
+      storyElement = container.children[0];
+    } else {
+      // Create the story-content element
+      storyElement = document.createElement('story-content');
+      storyElementRef.current = storyElement;
+      storyElement.markdown = markdown;
+      storyElement.questions = JSON.stringify(questions);
+      storyElement.storyMap = JSON.stringify(storyMap);
+
+      // Clear container and append the element
+      container.innerHTML = '';
+      container.appendChild(storyElement);
+    }
 
     // Handle the custom event from the Lit component
     const handleQuestionGuess = (event: CustomEvent<{ questionId: number; answer: string }>) => {
@@ -84,9 +94,6 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
     storyElement.addEventListener('story-scroll', handleStoryScroll as EventListener);
     storyElement.addEventListener('question-guess', handleQuestionGuess as EventListener);
 
-    // Clear container and append the element
-    container.innerHTML = '';
-    container.appendChild(storyElement);
 
     return () => {
       storyElement.removeEventListener('story-scroll', handleStoryScroll as EventListener);
