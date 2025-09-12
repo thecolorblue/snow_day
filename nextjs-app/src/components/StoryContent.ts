@@ -191,7 +191,7 @@ export class StoryContent extends LitElement {
 
     // Process story map words in reverse order
     [...this._storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
-      const matchingQuestion = this._questions.find(({question: q }) => q.correct.toLowerCase() === text.toLowerCase());
+      const matchingQuestion = this._questions.find(({question: q }) => text.toLowerCase().includes(q.correct.toLowerCase()));
       const classList = `class="word word-${this._storyMap.length - i - 1} ${matchingQuestion ? 'question-word' : ''}"`;
       
       if (matchingQuestion && matchingQuestion.question.answers) {
@@ -199,7 +199,7 @@ export class StoryContent extends LitElement {
           processedMarkdown,
           startOffsetUtf32,
           endOffsetUtf32,
-          `<question-element word="${text}" answers="${matchingQuestion.question.answers}">${text}</question-element>`
+          `<question-element word="${matchingQuestion.question.correct.toLowerCase()}" answers="${matchingQuestion.question.answers}">${text}</question-element>`
         );
       } else {
         processedMarkdown = replace_substring(

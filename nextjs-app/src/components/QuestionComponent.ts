@@ -227,7 +227,7 @@ export class QuestionComponent extends LitElement {
         </div>
       ` : ''}
       <span class="${classes.join(' ')}" @click=${this.handleWordClick}>
-        ${this.word}
+        <slot></slot>
       </span>
       ${this.showPopup && ['top', 'middle'].includes(this.popupPosition) ? html`
         <div class="popup bottom">
