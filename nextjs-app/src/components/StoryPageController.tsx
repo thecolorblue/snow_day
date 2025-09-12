@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import AudioComponent, { AudioComponentRef } from './AudioComponent';
 import SpeedComponent from './SpeedComponent';
 import SummaryComponent, { SummaryComponentRef } from './SummaryComponent';
-import PageComponent, { PageComponentRef, StoryMapWord } from './PageComponent';
 import { QuestionsProvider, useQuestionController } from './QuestionsContext';
+import StoryContentWrapper, { StoryContentWrapperRef, StoryMapWord } from './StoryContentWrapper';
 
 // Local Question type definition to avoid import issues
 interface Question {
@@ -21,20 +21,24 @@ interface Question {
 interface StoryPageControllerProps {
   storyHtml: string;
   storyAudio: string | null;
-  textMap: StoryMapWord[];
+  storyMap: StoryMapWord[];
   questions: Question[];
 }
 
 const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   storyHtml,
   storyAudio,
-  textMap,
+  storyMap,
   questions
 }) => {
   const audioRef = useRef<AudioComponentRef>(null);
   const summaryRef = useRef<SummaryComponentRef>(null);
-  const pageRef = useRef<PageComponentRef>(null);
+  const storyContentRef = useRef<StoryContentWrapperRef>(null);
   const questionController = useQuestionController();
+
+  const shuffledQuestions = useMemo(() => {
+    return questions.slice().sort(() => Math.random() - 0.5);
+  }, [questions]);
 
   // useEffect(() => {
   //   if (questions && questions.length > 0) {
@@ -60,7 +64,7 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   };
 
   const handleTimeUpdate = (time: number) => {
-    pageRef.current?.updateHighlighter(time);
+    storyContentRef.current?.updateHighlighter(time);
   };
 
   const handleGuess = (questionId: number, isCorrect: boolean) => {
@@ -89,15 +93,12 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   };
 
   const handleScroll = (position: number) => {
+    console.log('scroll to: ', position)
     audioRef.current?.seek(position);
   };
 
   const handleScrollEnd = () => {
     audioRef.current?.play();
-  };
-
-  const handlePageGuess = (questionId: number, answer: string, isCorrect: boolean) => {
-    questionController.guess(questionId, answer);
   };
 
   if (!storyAudio) {
@@ -106,12 +107,8 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
         <div className="text-center text-gray-500 mb-4">
           No audio available for this story
         </div>
-        <PageComponent
-          ref={pageRef}
-          text={storyHtml}
-          textMap={textMap}
-          onGuess={handlePageGuess}
-        />
+        <div className="bg-white p-4 rounded-lg shadow page-component-container">
+        </div>
         <SummaryComponent ref={summaryRef} />
       </div>
     );
@@ -124,20 +121,18 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
         ref={audioRef}
         url={storyAudio}
         onTimeUpdate={handleTimeUpdate}
-        onPause={() => console.log('Audio paused')}
-        onEnded={() => console.log('Audio ended')}
       />
 
       {/* Story Content */}
       <div className="bg-white p-4 rounded-lg shadow page-component-container">
-        <PageComponent
-          ref={pageRef}
-          text={storyHtml}
-          textMap={textMap}
-          onScroll={handleScroll}
+        <StoryContentWrapper
+          ref={storyContentRef}
+          markdown={storyHtml}
+          questions={shuffledQuestions}
+          storyMap={storyMap}
           onScrollStart={handleScrollStart}
+          onScroll={handleScroll}
           onScrollEnd={handleScrollEnd}
-          onGuess={handlePageGuess}
         />
       </div>
 

@@ -3,6 +3,8 @@ import StoryPageController from '@/components/StoryPageController';
 import BackButton from '@/components/BackButton';
 import { marked } from 'marked';
 import { getStorylineStepDetails, getStorylineDetails } from '@/lib/storyline-utils';
+import { QuestionsProvider } from '@/components/QuestionsContext';
+import StoryContentWrapper from '@/components/StoryContentWrapper';
 
 // Define the props for the mobile page component
 interface MobilePageProps {
@@ -30,10 +32,10 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
   const stepDetails = await getStorylineStepDetails(storylineId, storylineStep);
   const storylineDetails = await getStorylineDetails(storylineId);
 
-
   if (!stepDetails) {
     notFound(); // Return 404 if step details are not found
   }
+
   const storyMap = stepDetails.story.map ? JSON.parse(stepDetails.story.map): [];
   const questions = stepDetails.story.story_question.map((sq) => sq.question);
 
@@ -42,25 +44,6 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
      console.warn(`Mismatch: Step ${storylineStep} belongs to storyline ${stepDetails.storyline_id}, not ${storylineId}`);
      notFound();
   }
-
-  let markdown = stepDetails.story.content.replace(/\<play-word\>/g, '').replace(/<\/play-word>/g, '');
-
-
-  [...storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
-    const matchingQuestion = questions.find(q => q.correct.toLowerCase() === text.toLowerCase());
-    const classList = `class="word word-${storyMap.length - i - 1} ${matchingQuestion?'question-word': ''}"`;
-    
-    if (matchingQuestion) {
-      markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<question-element word="${text}" answers="${matchingQuestion?.answers}">${text}</question-element>`);
-    } else {
-      markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span ${classList} data-word-index="${storyMap.length - i - 1}">${text}</span>`);
-    }
-  })
-
-  // Parse story content from Markdown to HTML
-  let storyHtml = await marked(markdown || '');
-
-  storyHtml = storyHtml.replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&gt;/g, '>')
 
   return (
     <div className="story-page min-h-screen bg-gray-50">
@@ -117,9 +100,9 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
       {/* Main Content */}
       <div className="flex-1">
         <StoryPageController
-          storyHtml={storyHtml}
+          storyHtml={stepDetails.story.content}
           storyAudio={stepDetails.story.audio}
-          textMap={storyMap}
+          storyMap={storyMap}
           questions={questions.slice().sort(() => Math.random() - 0.5)}
         />
       </div>

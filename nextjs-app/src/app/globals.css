@@ -57,11 +57,6 @@ body {
   justify-content: space-between;
 }
 
-.highlighted-word {
-  background-color: blue;
-  color: white;
-}
-
 .question-word {
   color: white;
   text-decoration: underline;

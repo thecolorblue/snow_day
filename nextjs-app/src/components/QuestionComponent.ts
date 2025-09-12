@@ -12,6 +12,7 @@ export class QuestionComponent extends LitElement {
   private _answers: string;
   private _showPopup: boolean;
   private _state: string;
+  private popupPosition: 'top' | 'middle' | 'bottom';
 
   static styles = css`
     :host {
@@ -46,16 +47,21 @@ export class QuestionComponent extends LitElement {
 
     .popup {
       position: absolute;
-      top: 100%;
       left: 0;
       right: 0;
-      margin-top: 8px;
-      padding: 16px;
+      padding: 0 8px;
       background: white;
       border-radius: 8px;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
       z-index: 10;
-      min-width: 200px;
+    }
+
+    .popup.bottom {
+      top: 100%;
+    }
+
+    .popup.top {
+      bottom: 100%;
     }
 
     .popup h4 {
@@ -85,6 +91,11 @@ export class QuestionComponent extends LitElement {
       background-color: #f3f4f6;
     }
 
+.highlighted-word {
+  background-color: blue;
+  color: white;
+}
+
   `;
 
   constructor() {
@@ -93,7 +104,26 @@ export class QuestionComponent extends LitElement {
     this._answers = '';
     this._showPopup = false;
     this._state = '';
+    this.popupPosition = 'top';
     this.handleOutsideClick = this.handleOutsideClick.bind(this);
+  }
+
+  firstUpdated() {
+    if (this.parentElement) {
+      const componentRect = this.getBoundingClientRect();
+      const parentRect = this.parentElement.getBoundingClientRect();
+      const oneThirdHeight = parentRect.height / 3;
+      const topThirdBoundary = parentRect.top + oneThirdHeight;
+      const bottomThirdBoundary = parentRect.top + 2 * oneThirdHeight;
+
+      if (componentRect.top < topThirdBoundary) {
+        this.popupPosition = 'top';
+      } else if (componentRect.top >= topThirdBoundary && componentRect.top < bottomThirdBoundary) {
+        this.popupPosition = 'middle';
+      } else {
+        this.popupPosition = 'bottom';
+      }
+    }
   }
 
   get word() {
@@ -156,7 +186,7 @@ export class QuestionComponent extends LitElement {
 
   handleOutsideClick(event: Event) {
     // Check if the click is outside this component
-    if (event.target && !this.contains(event.target as Node)) {
+    if (!event.composedPath().includes(this)) {
       this.showPopup = false;
     }
   }
@@ -182,13 +212,27 @@ export class QuestionComponent extends LitElement {
     }
 
     return html`
+      ${this.showPopup && ['middle', 'bottom'].includes(this.popupPosition) ? html`
+        <div class="popup top">
+          <div class="answers">
+            ${(this.popupPosition === 'middle' ? this.answersList.slice(0, Math.floor(this.answersList.length / 2)): this.answersList).map((answer: string) => html`
+              <button 
+                class="answer-button"
+                @click=${() => this.handleAnswerClick(answer)}
+              >
+                ${answer}
+              </button>
+            `)}
+          </div>
+        </div>
+      ` : ''}
       <span class="${classes.join(' ')}" @click=${this.handleWordClick}>
         ${this.word}
       </span>
-      ${this.showPopup ? html`
-        <div class="popup">
+      ${this.showPopup && ['top', 'middle'].includes(this.popupPosition) ? html`
+        <div class="popup bottom">
           <div class="answers">
-            ${this.answersList.map((answer: string) => html`
+            ${(this.popupPosition === 'middle' ? this.answersList.slice(Math.ceil(this.answersList.length / 2), this.answersList.length): this.answersList).map((answer: string) => html`
               <button 
                 class="answer-button"
                 @click=${() => this.handleAnswerClick(answer)}

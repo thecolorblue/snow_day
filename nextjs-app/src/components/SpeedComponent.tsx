@@ -63,6 +63,7 @@ const SpeedComponent: React.FC<SpeedComponentProps> = ({
         onClick={handleClick}
         onChange={handleChange}
         onMouseUp={handleMouseUp}
+        // @ts-ignore
         onTouchEnd={handleTouchEnd}
         className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
       />
