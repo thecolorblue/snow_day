@@ -21,11 +21,11 @@ const storyCircleChapters = [
   "They find obstacles in this new world. They fail their first challenge and must un-learn something foundational to their ordinary world to continue on their journey.",
   "They achieve what they sought and receive an item of great value (at least to them) and new knowledge that brings clarity to their ordinary world, but it comes with unexpected consequences.",
   "A major cost or sacrifice is required. The protagonist pays a price, forcing growth or change to move forward in their journey.",
-  "They head back to their familiar world, with both tangible and intangible items. The journey has revealed a fundimental truth about their world that was not clear before. This new perspective makes the solution to previous problems trivial and they receive great praise for the value they can add to their community.",
+  "They head back to their familiar world, with both tangible and intangible items. The journey has revealed a fundamental truth about their world that was not clear before. This new perspective makes the solution to previous problems trivial and they receive great praise for the value they can add to their community.",
   "The protagonist integrates what they've learned, resolving the journey with newfound wisdom or transformation.",
 ];
 const instructions = `
-You are an expert fiction writer for elementary students. You will write one chapter at at time. Each chapter should be about 300 words. 
+You are an expert fiction writer for elementary students. You will write one chapter at a time. Each chapter should be about 300 words. 
 Write stories in eight chapters, each corresponding to a step in the Dan Harmon Story Circle.
 
 Your output is always in markdown format.`;

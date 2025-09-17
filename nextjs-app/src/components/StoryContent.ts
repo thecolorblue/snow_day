@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import { QuestionComponent } from './QuestionComponent';
 import { QuestionStatus } from './QuestionsContext';
 import { StoryMap } from '@/app/storyline/[storyline_id]/page/[storyline_step]/page';
+import sanitizeHtml from 'sanitize-html';
 
 export interface StoryMapWord {
   type: string;
@@ -139,7 +140,7 @@ export class StoryContent extends LitElement {
           question: q,
           status: 'pending' as const,
           userAnswer: undefined
-        }));;
+        }));
     } else {
       try {
         this._questions = (JSON.parse(qList) || []).map((q:Question) => ({

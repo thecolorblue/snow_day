@@ -76,10 +76,9 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
 
     const handleStoryScroll = (event: CustomEvent) => {
       const element = event.target as HTMLElement;
-      //@ts-ignore
-      const scrollPosition = element.shadowRoot.children[0].scrollTop;
+      const scrollPosition = element.shadowRoot?.children[0].scrollTop;
       const maxScroll = element.scrollHeight;
-      const scrollPercentage = maxScroll > 0 ? scrollPosition / maxScroll : 0;
+      const scrollPercentage = scrollPosition && maxScroll > 0 ? scrollPosition / maxScroll : 0;
 
       console.log(scrollPosition);
       // Convert scroll percentage to time position (assuming storyMap represents timeline)

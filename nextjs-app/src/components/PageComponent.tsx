@@ -2,8 +2,8 @@
 
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
 import { useQuestions } from './QuestionsContext';
-import { match } from 'assert';
 import './QuestionComponent';
+import sanitizeHtml from 'sanitize-html';
 
 export interface StoryMapWord {
   type: string;
@@ -170,18 +170,19 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
         if (matchingQuestion) {
           guess(matchingQuestion.id, event.detail.answer);
 
-          //@ts-ignore
-          event.target.setAttribute('state', matchingQuestion.question.correct === event.detail.answer ? 'correct': 'incorrect');
+          (event.target as HTMLElement).setAttribute('state', matchingQuestion.question.correct === event.detail.answer ? 'correct': 'incorrect');
         }
       };
 
+      const customEventListener = (event: Event) => {
+        handleAnswerSelected(event as CustomEvent<{ word: string; answer: string }>);
+      };
+
       // Add event listener to the document
-      //@ts-ignore
-      document.addEventListener('answer-selected', handleAnswerSelected);
+      document.addEventListener('answer-selected', customEventListener);
 
       return () => {
-        //@ts-ignore
-        document.removeEventListener('answer-selected', handleAnswerSelected);
+        document.removeEventListener('answer-selected', customEventListener);
       };
     }, [textMap, getQuestions, guess]);
 
@@ -192,7 +193,9 @@ const PageComponent = forwardRef<PageComponentRef, PageComponentProps>(
           className="story-content overflow-y-auto rounded-lg bg-white"
           onScroll={handleScroll}
         >
-          <div dangerouslySetInnerHTML={{ __html: text }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(text, {
+                allowedTags: [ 'b', 'i', 'em', 'strong', 'p', 'h1', 'h2', 'h3', 'h4' ]
+              }) }} />
         </div>
       </div>
     );
