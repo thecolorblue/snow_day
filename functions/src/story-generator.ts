@@ -13,6 +13,23 @@ export interface ParsedStoryline extends Storyline {
   friend: string[];
 }
 
+const chapterMap = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'];
+const storyCircleChapters = [
+  "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting.",
+  "Show what's missing in their life. This should set the stakes for the rest of the story. They desire something or are faced with a challenge that disrupts their normalcy. A magical creature or item is revealed but it is not clear to what use.",
+  "The protagonist is forced to make a choice to leave their comfort zone, embarking on their journey. ",
+  "They find obstacles in this new world. They fail their first challenge and must un-learn something foundational to their ordinary world to continue on their journey.",
+  "They achieve what they sought and receive an item of great value (at least to them) and new knowledge that brings clarity to their ordinary world, but it comes with unexpected consequences.",
+  "A major cost or sacrifice is required. The protagonist pays a price, forcing growth or change to move forward in their journey.",
+  "They head back to their familiar world, with both tangible and intangible items. The journey has revealed a fundimental truth about their world that was not clear before. This new perspective makes the solution to previous problems trivial and they receive great praise for the value they can add to their community.",
+  "The protagonist integrates what they've learned, resolving the journey with newfound wisdom or transformation.",
+];
+const instructions = `
+You are an expert fiction writer for elementary students. You will write one chapter at at time. Each chapter should be about 300 words. 
+Write stories in eight chapters, each corresponding to a step in the Dan Harmon Story Circle.
+
+Your output is always in markdown format.`;
+
 export interface ProcessedParagraph {
   content: string;
   audio?: string;
@@ -81,6 +98,47 @@ export class StoryGenerator {
     }
 
     return content.split('\n\n').filter((p: string) => p.trim());
+  }
+
+  async chapterGenerator(storylineData: ParsedStoryline, previousChapter: string|undefined = undefined, index: number = 0): Promise<string | null> {
+    if (!storyCircleChapters[index]) {
+      return Promise.resolve(null);
+    }
+    const { words, genre, location, style, selected_interests, friend } = storylineData;
+    const interests_string = selected_interests?.join(', ') || 'nothing in particular';
+    const user_name = "Maeve"; // Assuming static user for now
+    const user_age = 8; // Assuming static age for now
+
+    const user_prompt = `
+Write the ${chapterMap[index]} chapter that should ${storyCircleChapters[index]}
+
+Story Description:
+Write an ${genre} story located in ${location} in the style of ${style} for ${user_name} who is ${user_age} years old. It should be very silly. Over the top silly.
+She likes ${interests_string}, and her best friend is ${friend}.
+The story must include the following words: ${words.join(', ')}.
+
+Previous Chapter:
+${previousChapter}
+
+The chapter must include the following words: again, when, friend, from, month.
+    `;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-5-nano-2025-08-07',
+      messages: [
+        { role: 'system', content: instructions },
+        { role: 'user', content: user_prompt }
+      ],
+      temperature: 1,
+    });
+
+    const content = response.choices[0].message?.content;
+    if (!content) {
+      throw new Error('LLM response was empty.');
+    }
+
+    return content
+
   }
 
   async processParagraph(paragraph: string, storylineData: ParsedStoryline, index: number = 0): Promise<ProcessedParagraph> {
