@@ -1,5 +1,6 @@
 "use client";
 
+import { AppHeader } from "@/components";
 import { useState } from "react";
 
 interface FormData {
@@ -36,6 +37,8 @@ export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudent
   if (!isOpen) return null;
 
   return (
+    <>
+    <AppHeader></AppHeader>
     <div className="inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Student</h3>
@@ -100,6 +103,6 @@ export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudent
           </div>
         </form>
       </div>
-    </div>
+    </div></>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AppHeader from '@/components/AppHeader';
 
 interface VocabItem {
   id: number;
@@ -130,6 +131,8 @@ export default function VocabViewPage({ params }: { params: Promise<{ id: string
   const words = vocab.list.split(',').map(word => word.trim()).filter(word => word.length > 0);
 
   return (
+    <>
+    <AppHeader></AppHeader>
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
@@ -193,6 +196,6 @@ export default function VocabViewPage({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </div>
-    </div>
+    </div></>
   );
 }

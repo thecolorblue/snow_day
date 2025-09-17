@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import { marked } from 'marked'; // Import marked for Markdown conversion
 import StorylineStepView, { StoryMapWord } from './StorylineStepView'; // Client component for rendering
 import { Question, Story, StoryQuestion, StorylineStep, StorylineProgress } from '@prisma/client'; // Import necessary types
+import StoryContentWrapper from '@/components/StoryContentWrapper'; // Import the wrapper component
+import { QuestionsProvider } from '@/components/QuestionsContext'; // Import the QuestionsProvider
 
 // Define the expected shape of the fetched data
 // Includes StorylineStep, its Story, and the Story's Questions via StoryQuestion
@@ -36,11 +37,6 @@ export interface StoryMap {
   timeline: StoryMap[];
 }
 
-function replace_substring(originalString: string, start: number = 0, end: number = 0, replacement: string) {
-  if (end === 0) { end = originalString.length; }
-  
-  return originalString.substring(0, start) + replacement + originalString.substring(end);
-}
 
 async function getStorylineDetails(storylineId: number): Promise<StorylineDetails | null> {
   try {
@@ -176,18 +172,8 @@ export default async function StorylineStepPage({ params }: PageProps) {
      notFound();
   }
 
-  let markdown = stepDetails.story.content.replace(/\<play-word\>/g, '').replace(/<\/play-word>/g, '');
-
+  const markdown = stepDetails.story.content;
   const storyMap:StoryMapWord[] = stepDetails.story.map ? JSON.parse(stepDetails.story.map): [];
-
-  [...storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
-    markdown = replace_substring(markdown, startOffsetUtf32, endOffsetUtf32, `<span class="word-${storyMap.length - i - 1}">${text}</span>`);
-  })
-
-  // Parse story content from Markdown to HTML
-  let storyHtml = await marked(markdown || '');
-
-  storyHtml = storyHtml.replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&gt;/g, '>')
 
   // Extract questions from the nested structure
   const questions = stepDetails.story.story_question.map(sq => sq.question);
@@ -206,14 +192,23 @@ export default async function StorylineStepPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold mt-2">Storyline {storylineId} - Step {stepDetails.step}</h1>
       </div>
 
-      {/* Pass data to the Client Component */}
+      {/* Wrap with QuestionsProvider for the new component */}
+      <QuestionsProvider>
+        <StoryContentWrapper
+          markdown={markdown}
+          questions={questions.slice().sort(() => Math.random() - 0.5)}
+          storyMap={storyMap}
+        />
+      </QuestionsProvider>
+
+      {/* Keep the original StorylineStepView for other functionality if needed */}
       <StorylineStepView
         storylineId={storylineId}
         storylineStep={storylineStep}
         storyId={stepDetails.story.id}
         wordList={storyMap}
         storyAudio={stepDetails.story.audio}
-        storyHtml={storyHtml}
+        storyHtml=""
         questions={questions.slice().sort(() => Math.random() - 0.5)}
         // Pass progress data here later
       />

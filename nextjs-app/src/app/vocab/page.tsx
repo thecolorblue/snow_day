@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { AppHeader } from '@/components';
 
 interface VocabItem {
   id: number;
@@ -112,6 +113,8 @@ export default function VocabListPage() {
   }
 
   return (
+    <>
+    <AppHeader></AppHeader>
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
@@ -184,6 +187,6 @@ export default function VocabListPage() {
           </div>
         </div>
       </div>
-    </div>
+    </div></>
   );
 }

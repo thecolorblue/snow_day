@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-chewy); /* Use Chewy for sans-serif */
+  --font-sans: var(--font-outfit); /* Use Outfit for sans-serif */
   --font-mono: var(--font-geist-mono);
 }
 
@@ -23,7 +23,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans); /* Apply the default sans font */
-  font-family: "Chewy", system-ui;
+  font-family: "Outfit", system-ui;
   font-style: normal;
   font-size: x-large;
   /* font-weight, font-style, font-size can be adjusted per component or globally as needed */
@@ -55,4 +55,59 @@ body {
 
 .justify-between {
   justify-content: space-between;
+}
+
+.question-word {
+  color: white;
+  text-decoration: underline;
+  text-decoration-color: black;
+  cursor: pointer;
+}
+.question-word.highlighted-word {
+  color: #00f !important;
+  
+}
+.question-word:hover {
+    background: black;
+    color: black;
+}
+
+.slider {
+  writing-mode: vertical-lr;
+    direction: rtl;
+    appearance: slider-vertical;
+    width: 16px;
+    vertical-align: bottom;
+    height: 64vh;
+}
+.story-page {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.story-page-controller {
+  display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-around;
+    align-content: space-around;
+    flex-wrap: wrap;
+}
+
+.speed-component-container {
+  width: 10vw;
+  max-height: 69vh;
+}
+
+.page-component {
+  height: 100%;
+}
+.story-content {
+  height: 100%;
+}
+
+.page-component-container {
+  width: 79vw;
+  max-height: 69vh;
 }

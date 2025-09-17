@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import { Chewy, Lexend_Deca } from "next/font/google"; // Import Chewy and Lexend Deca fonts
+import { Outfit, Lexend_Deca } from "next/font/google"; // Import Outfit and Lexend Deca fonts
 import Link from "next/link"; // Import Link
 import Providers from "./Providers";
 import SDApplicationBar from "@/components/SDApplicationBar";
+import AppHeader from "@/components/AppHeader";
 import "./globals.css";
 import { BookOpen, PlusCircle } from 'lucide-react';
 
-// Instantiate Chewy font
-const chewy = Chewy({
-  variable: "--font-chewy", // Define CSS variable for Chewy
+// Instantiate Outfit font
+const outfit = Outfit({
+  variable: "--font-outfit", // Define CSS variable for Outfit
   subsets: ["latin"],
-  weight: "400", // Chewy only supports 400 weight
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"], // Outfit supports multiple weights
 });
 // Instantiate Lexend Deca font
 const lexendDeca = Lexend_Deca({
@@ -32,23 +33,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${chewy.variable} ${lexendDeca.variable} antialiased`}> {/* Apply Chewy and Lexend Deca font variables */}
+      <body className={`${outfit.variable} ${lexendDeca.variable} antialiased`}> {/* Apply Outfit and Lexend Deca font variables */}
         <Providers>
-          <SDApplicationBar app_name="Snow Day" primary_menu={[
-            {
-              title: 'View Storylines',
-              // callback: () => console.log('storyline clicked'),
-              icon: <BookOpen />
-            }
-          ]}/>
-          <div className="bg-gray-100 p-2 flex justify-end space-x-4">
-            <Link href="/vocab" className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-              Vocab List
-            </Link>
-            <Link href="/vocab/create" className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">
-              Create Vocab
-            </Link>
-          </div>
           <main>{children}</main> {/* Wrap children in main for semantics */}
         </Providers>
       </body>

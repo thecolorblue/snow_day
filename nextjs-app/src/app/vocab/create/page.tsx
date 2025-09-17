@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AppHeader from '@/components/AppHeader';
 
 interface Student {
   id: number;
@@ -140,6 +141,8 @@ export default function VocabCreatePage() {
   }
 
   return (
+    <>
+    <AppHeader></AppHeader>
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
@@ -223,6 +226,6 @@ export default function VocabCreatePage() {
           </form>
         </div>
       </div>
-    </div>
+    </div></>
   );
 }
