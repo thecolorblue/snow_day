@@ -182,7 +182,7 @@ export default async function StorylineStepPage({ params }: PageProps) {
     <div className="container mx-auto p-4">
       <div className="flex justify-evenly">
         {Object.keys(storylineDetails?.progress || {}).map((v, i)=>(
-          <div key={v} className={storylineDetails?.progress[parseInt(v, 10)] ? 'progress': ''}><Link href={`/storyline/${storylineId}/page/${v}`}>Page {v}</Link></div>
+          <div key={v} className={storylineDetails?.progress[parseInt(v, 10)] ? 'progress': ''}><Link href={`/storyline/${storylineId}/mobile/${v}`}>Page {v}</Link></div>
         ))}
       </div>
       <div className="mb-4">

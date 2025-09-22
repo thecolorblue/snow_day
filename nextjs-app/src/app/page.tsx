@@ -300,7 +300,7 @@ export default function Home() {
                       </p>
                     )}
                     <Link
-                      href={`/storyline/${storyline.storyline_id}/page/1`}
+                      href={`/storyline/${storyline.storyline_id}/mobile/1`}
                       className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
                     >
                       Continue storyline

@@ -189,7 +189,7 @@ export default async function StorylinesDashboard() {
               {/* Actions */}
               <div className="flex justify-end">
                 {storyline.step_count > 0 ? (
-                  <Link href={`/storyline/${storyline.storyline_id}/page/1`}>
+                  <Link href={`/storyline/${storyline.storyline_id}/mobile/1`}>
                     <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
                       Start
                     </button>

@@ -193,7 +193,7 @@ const SDApplicationBar = ({ app_name, primary_menu }: SDApplicationBarProps) => 
                   {frontPageData.storylines.slice(0, 3).map((storyline) => (
                     <Link
                       key={storyline.storyline_id}
-                      href={`/storyline/${storyline.storyline_id}/page/1`}
+                      href={`/storyline/${storyline.storyline_id}/mobile/1`}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setIsMenuOpen(false)}
                     >
