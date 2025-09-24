@@ -68,11 +68,22 @@ async function selectWordsFromVocab(vocabId: number): Promise<string[]> {
 export async function createStorylineAction(formData: FormData) {
   // 1. Extract data from FormData
   const selectedVocabId = formData.get('selected_vocab') as string;
+  const selectedStudentId = formData.get('selected_student') as string;
   const genre = formData.get('genres') as string || null; // Handle empty selection
   const location = formData.get('locations') as string || null;
   const style = formData.get('styles') as string || null;
   const interests = formData.getAll('interests') as string[];
   const friends = formData.getAll('friends') as string[];
+
+  // Validate student selection
+  if (!selectedStudentId) {
+    throw new Error("Please select a student.");
+  }
+
+  const studentId = parseInt(selectedStudentId, 10);
+  if (isNaN(studentId)) {
+    throw new Error("Invalid student selection.");
+  }
 
   // Validate vocab selection
   if (!selectedVocabId) {
@@ -97,6 +108,7 @@ export async function createStorylineAction(formData: FormData) {
   // 3. Construct the storyline_data JSON object
   // Use selected values or random defaults if not selected
   const storylineData = {
+    student_id: studentId,
     vocab_id: vocabId,
     words: selectedWords, // Array of words from the vocab
     genre: genre ?? GENRES[getRandomInt(0, GENRES.length - 1)],

@@ -5,7 +5,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Story {
@@ -74,6 +75,8 @@ model StorylineProgress {
   createdAt             DateTime?     @map("created_at") @db.Timestamp(6)
   storyline_id          Int
   storyline_step_id     Int
+  student_id            Int?
+  student               Student?      @relation(fields: [student_id], references: [id], onDelete: SetNull)
   story_question        StoryQuestion @relation(fields: [story_question_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   storyline             Storyline     @relation(fields: [storyline_id], references: [storyline_id], onDelete: NoAction, onUpdate: NoAction)
   storyline_step        StorylineStep @relation(fields: [storyline_step_id], references: [storyline_step_id], onDelete: NoAction, onUpdate: NoAction)
@@ -125,14 +128,16 @@ model Guardian {
 }
 
 model Student {
-  id            Int            @id @default(autoincrement())
-  name          String
-  friends       String
-  interests     String
-  guardianId    Int?           @map("guardian_id")
-  guardian      Guardian?      @relation(fields: [guardianId], references: [id], onDelete: SetNull)
-  createdAt     DateTime       @default(now()) @map("created_at")
-  student_vocab StudentVocab[]
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  friends            String
+  interests          String
+  lexile             String?
+  guardianId         Int?                @map("guardian_id")
+  guardian           Guardian?           @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  student_vocab      StudentVocab[]
+  storyline_progress StorylineProgress[]
 
   @@map("student")
 }

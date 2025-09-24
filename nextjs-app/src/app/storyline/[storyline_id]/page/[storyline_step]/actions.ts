@@ -9,6 +9,25 @@ interface AnswerData {
     // Add timing data if implemented (e.g., lastEditTimestamp)
 }
 
+export interface StorylineProgress {
+    storyline_id: number;
+    storyline_step_id: number;
+    student_id: number;
+    story_question_id: number;
+    duration: number;
+    score: number;
+    attempts: number;
+}
+
+export async function completeChapter(
+    progress: StorylineProgress[]
+) {
+    console.log(progress);
+    return Promise.all([
+        progress.map(p => prisma.storylineProgress.create({ data: { ...p } }))
+    ]);   
+}
+
 export async function submitStorylineStepAction(
     storylineId: number,
     storylineStep: number,

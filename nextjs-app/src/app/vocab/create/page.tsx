@@ -5,13 +5,15 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
+import React from 'react';
 
 interface Student {
   id: number;
   name: string;
 }
 
-export default function VocabCreatePage() {
+export default function VocabCreatePage({ searchParams }: { searchParams: { base_vocab: string }}) {
+  const { base_vocab } = React.use<{ base_vocab: string }>(searchParams);
   const { data: session, status } = useSession();
   const router = useRouter();
   
@@ -22,20 +24,15 @@ export default function VocabCreatePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [baseVocabId, setBaseVocabId] = useState<number | null>(null);
+  const [baseVocabId, setBaseVocabId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetchStudents();
-      
-      // Get base_vocab from URL parameter if exists (client-side only)
-      const urlParams = new URLSearchParams(window.location.search);
-      const baseVocabParam = urlParams.get('base_vocab');
-      
-      if (baseVocabParam) {
-        const vocabId = parseInt(baseVocabParam);
-        setBaseVocabId(vocabId);
-        fetchBaseVocab(vocabId);
+            
+      if (base_vocab) {
+        setBaseVocabId(base_vocab);
+        fetchBaseVocab(base_vocab);
       }
     }
   }, [status]);
@@ -59,7 +56,7 @@ export default function VocabCreatePage() {
     }
   };
 
-  const fetchBaseVocab = async (vocabId: number) => {
+  const fetchBaseVocab = async (vocabId: string) => {
     try {
       const response = await fetch(`/api/vocab/${vocabId}`);
       

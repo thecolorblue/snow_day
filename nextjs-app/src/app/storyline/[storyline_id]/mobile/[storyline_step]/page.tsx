@@ -110,11 +110,12 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
       </div>
 
       {/* Mobile Navigation */}
-      <StorylineNavigationButtons
+      {storylineDetails && <StorylineNavigationButtons
         storylineId={storylineId}
-        storylineStep={storylineStep}
+        studentId={storylineDetails.studentId}
+        stepDetails={stepDetails}
         storylineDetails={storylineDetails}
-      />
+      />}
       </div>
     </QuestionsProvider>
   );
