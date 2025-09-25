@@ -91,16 +91,24 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   };
 
   const handleScrollStart = () => {
-    audioRef.current?.pause();
+    // audioRef.current?.pause();
   };
 
-  const handleScroll = (position: number) => {
-    console.log('scroll to: ', position)
+  const handleSeek = (position: number, duration?: number) => {
     audioRef.current?.seek(position);
+
+    if (duration && !audioRef.current?.isPlaying()) {
+      audioRef.current?.play();
+
+      setTimeout(() => {
+        audioRef.current?.seek(position);
+        audioRef.current?.pause();
+      }, duration * 1200);
+    }
   };
 
   const handleScrollEnd = () => {
-    audioRef.current?.play();
+    // audioRef.current?.play();
   };
 
   if (!storyAudio) {
@@ -133,7 +141,7 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
           questions={shuffledQuestions}
           storyMap={storyMap}
           onScrollStart={handleScrollStart}
-          onScroll={handleScroll}
+          onSeek={handleSeek}
           onScrollEnd={handleScrollEnd}
         />
       </div>

@@ -26,6 +26,7 @@ interface StoryContentWrapperProps {
   onScrollStart?: () => void;
   onScroll?: (timePosition: number) => void;
   onScrollEnd?: () => void;
+  onSeek?: (timePosition: number, duration: number) => void;
   className?: string;
 }
 
@@ -34,7 +35,7 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
   questions,
   storyMap,
   onScrollStart,
-  onScroll,
+  onSeek,
   onScrollEnd,
   className = "story-content overflow-y-auto rounded-lg bg-white"
 }, ref) => {
@@ -85,20 +86,37 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
       if (storyMap && storyMap.length > 0) {
         const totalDuration = Math.max(...storyMap.map(word => word.endTime));
         const timePosition = scrollPercentage * totalDuration;
-        onScroll?.(timePosition);
+        onSeek?.(timePosition);
       }
     };
 
+    const handleSelectWord = (event: CustomEvent) => {
+      // find start of word time position
+      // tell parent to play from timeposition for word duration
+      const { wordIndex } = event.detail;
+      
+      if (storyMap && wordIndex >= 0 && wordIndex < storyMap.length) {
+        const selectedWord = storyMap[wordIndex];
+        const startTime = selectedWord.startTime;
+        const duration = selectedWord.endTime - selectedWord.startTime;
+        
+        // Call onSeek with the word's start time
+        onSeek?.(startTime, duration);
+      }
+    }
+
     // Add event listeners
+    storyElement.addEventListener('story-select-word', handleSelectWord as EventListener);
     storyElement.addEventListener('story-scroll', handleStoryScroll as EventListener);
     storyElement.addEventListener('question-guess', handleQuestionGuess as EventListener);
 
 
     return () => {
+      storyElement.removeEventListener('story-select-word', handleSelectWord as EventListener);
       storyElement.removeEventListener('story-scroll', handleStoryScroll as EventListener);
       storyElement.removeEventListener('question-guess', handleQuestionGuess as EventListener);
     };
-  }, [markdown, questions, storyMap, onScroll, onScrollStart, onScrollEnd, guess]);
+  }, [markdown, questions, storyMap, onSeek, onScrollStart, onScrollEnd, guess]);
 
   useImperativeHandle(ref, () => ({
     updateHighlighter: (timeUpdate: number) => {
