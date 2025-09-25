@@ -12,8 +12,12 @@ interface Student {
   name: string;
 }
 
-export default function VocabCreatePage({ searchParams }: { searchParams: { base_vocab: string }}) {
-  const { base_vocab } = React.use<{ base_vocab: string }>(searchParams);
+export default async function VocabCreatePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ base_vocab: string }>;
+}) {
+  const { base_vocab } = await searchParams;
   const { data: session, status } = useSession();
   const router = useRouter();
   

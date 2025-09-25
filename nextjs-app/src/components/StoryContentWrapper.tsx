@@ -75,21 +75,6 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
       guess(event.detail.questionId, event.detail.answer);
     };
 
-    const handleStoryScroll = (event: CustomEvent) => {
-      const element = event.target as HTMLElement;
-      const scrollPosition = element.shadowRoot?.children[0].scrollTop;
-      const maxScroll = element.scrollHeight;
-      const scrollPercentage = scrollPosition && maxScroll > 0 ? scrollPosition / maxScroll : 0;
-
-      console.log(scrollPosition);
-      // Convert scroll percentage to time position (assuming storyMap represents timeline)
-      if (storyMap && storyMap.length > 0) {
-        const totalDuration = Math.max(...storyMap.map(word => word.endTime));
-        const timePosition = scrollPercentage * totalDuration;
-        onSeek?.(timePosition);
-      }
-    };
-
     const handleSelectWord = (event: CustomEvent) => {
       // find start of word time position
       // tell parent to play from timeposition for word duration
@@ -107,13 +92,11 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
 
     // Add event listeners
     storyElement.addEventListener('story-select-word', handleSelectWord as EventListener);
-    storyElement.addEventListener('story-scroll', handleStoryScroll as EventListener);
     storyElement.addEventListener('question-guess', handleQuestionGuess as EventListener);
 
 
     return () => {
       storyElement.removeEventListener('story-select-word', handleSelectWord as EventListener);
-      storyElement.removeEventListener('story-scroll', handleStoryScroll as EventListener);
       storyElement.removeEventListener('question-guess', handleQuestionGuess as EventListener);
     };
   }, [markdown, questions, storyMap, onSeek, onScrollStart, onScrollEnd, guess]);

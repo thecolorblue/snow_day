@@ -7,7 +7,7 @@ import { Student } from '@prisma/client'; // Import Student type
 import { createStorylineAction } from './actions'; // Import the Server Action
 
 // Type for vocab with student info
-type VocabWithStudent = {
+export interface VocabWithStudent {
   id: number;
   list: string;
   title: string;

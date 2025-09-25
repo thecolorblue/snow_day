@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { Student } from '@prisma/client'; // Import Student type
 import StorylineForm from './StorylineForm'; // Import the form component
+import { VocabWithStudent } from './StorylineForm';
 
 // Define props including the static lists and searchParams
 interface QuestionLoaderProps {
@@ -11,16 +12,6 @@ interface QuestionLoaderProps {
   interests: string[];
   friends: string[];
 }
-
-// Type for vocab with student info
-type VocabWithStudent = {
-  id: number;
-  list: string;
-  createdAt: Date;
-  student_vocab: {
-    student: Student;
-  }[];
-};
 
 // Fetch vocabs for all students (in a real app, you'd filter by current user's students)
 async function getVocabs(): Promise<VocabWithStudent[]> {
