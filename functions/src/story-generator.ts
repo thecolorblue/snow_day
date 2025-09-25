@@ -62,6 +62,7 @@ export class StoryGenerator {
       selected_interests: string[];
       friend: string;
       vocab_id?: number;
+      student_id?: number;
     };
 
     return {
@@ -110,7 +111,7 @@ export class StoryGenerator {
     }
     const { genre, location, style, selected_interests, vocab_id, student_id } = storylineData;
     const interests_string = selected_interests?.join(', ') || 'nothing in particular';
-    const words = async this.pickNextWords(vocab_id, student_id);
+    const words = await this.pickNextWords(vocab_id, student_id);
     const user_prompt = `
 Write the ${chapterMap[index]} chapter that should ${storyCircleChapters[index]}
 
@@ -165,26 +166,66 @@ ${previousChapter}
     };
   }
 
-  async pickNextWords(vocab_id: number, student_id:number): Promise<string[]> {
-    const [vocab, progress] = Promise.all([
-        prisma.vocab.findFirst({
+  async pickNextWords(vocab_id: number, student_id: number, count: number = 5): Promise<string[]> {
+    const [vocab, progress] = await Promise.all([
+      prisma.vocab.findFirst({
         where: {
-          id: vocab_id
-        }
+          id: vocab_id,
+        },
       }),
       prisma.storylineProgress.findMany({
         where: {
-          student_id: student_id
-        }
-      })
+          student_id: student_id,
+        },
+        include: {
+          story_question: {
+            include: {
+              question: true,
+            },
+          },
+        },
+      }),
     ]);
 
-    // match progress to vocab words
-    // - Words with no storyline_progress first
-    // - Then words with highest attempts (at least 2 attempts)
-    // - Then words with longest duration
+    if (!vocab) {
+      return [];
+    }
 
-    //
+    const uniqueWords = [...new Set(vocab.list.split(',').map(w => w.trim()))];
+
+    const progressMap = new Map<string, { attempts: number; duration: number }>();
+
+    for (const p of progress) {
+      const word = p.story_question.question.correct;
+      const existing = progressMap.get(word) || { attempts: 0, duration: 0 };
+      existing.attempts += p.attempts || 1;
+      existing.duration += p.duration || 0;
+      progressMap.set(word, existing);
+    }
+
+    uniqueWords.sort((a, b) => {
+      const aProgress = progressMap.get(a);
+      const bProgress = progressMap.get(b);
+
+      if (!aProgress && bProgress) return -1;
+      if (aProgress && !bProgress) return 1;
+      if (!aProgress && !bProgress) return 0;
+
+      if (aProgress && bProgress) {
+        if (aProgress.attempts >= 2 && bProgress.attempts < 2) return -1;
+        if (aProgress.attempts < 2 && bProgress.attempts >= 2) return 1;
+        if (aProgress.attempts >= 2 && bProgress.attempts >= 2) {
+          if (aProgress.attempts !== bProgress.attempts) {
+            return bProgress.attempts - aProgress.attempts;
+          }
+        }
+
+        return bProgress.duration - aProgress.duration;
+      }
+      return 0;
+    });
+
+    return uniqueWords.slice(0, 5);
   }
 
   async save(storylineData: ParsedStoryline, paragraphs: ProcessedParagraph[], index?: number) {

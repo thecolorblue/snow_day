@@ -1,18 +1,6 @@
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
-
-interface VocabItem {
-  id: number;
-  title: string;
-  list: string;
-  createdAt: string;
-  student_vocab: {
-    student_id: number;
-    student: {
-      name: string;
-    };
-  }[];
-}
+import prisma from '@/lib/prisma';
 
 export default async function VocabViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

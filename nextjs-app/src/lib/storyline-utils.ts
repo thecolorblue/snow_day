@@ -70,10 +70,19 @@ export async function getStorylineDetails(storylineId: number): Promise<Storylin
       progress[step.step] = step.storyline_progress.length > 0;
     });
 
-    console.log(storyline);
+    let studentId = 0;
+    if (storyline?.original_request) {
+      try {
+        const parsed = JSON.parse(storyline.original_request);
+        studentId = parsed.student_id || 0;
+      } catch (e) {
+        console.warn('Failed to parse storyline.original_request:', e);
+        studentId = 0;
+      }
+    }
 
     return {
-      studentId: JSON.parse(storyline?.original_request || '').student_id || 0,
+      studentId,
       steps: totalSteps,
       progress: progress,
     };
