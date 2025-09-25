@@ -96,10 +96,7 @@ export default function StorylineNavigationButtons({
           {storylineDetails && stepDetails.step < Object.keys(storylineDetails.progress).length && (
             <Link
               href={`/storyline/${storylineId}/mobile/${stepDetails.step + 1}`}
-              onNavigate={() => {
-                console.log(Object.values(progress));
-                completeChapter(Object.values(progress));
-              }}
+              onNavigate={() => completeChapter(Object.values(progress))}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
                 isCompleted
                   ? 'bg-blue-600 text-white hover:bg-blue-700 transition-colors'
@@ -113,6 +110,28 @@ export default function StorylineNavigationButtons({
               aria-disabled={!isCompleted}
             >
               <span className="text-sm">Next</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          )}
+          {storylineDetails && stepDetails.step === Object.keys(storylineDetails.progress).length && (
+            <Link
+              href={`/storylines`}
+              onNavigate={() => completeChapter(Object.values(progress))}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
+                isCompleted
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 transition-colors'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              onClick={(e) => {
+                if (!isCompleted) {
+                  e.preventDefault();
+                }
+              }}
+              aria-disabled={!isCompleted}
+            >
+              <span className="text-sm">Finish</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>

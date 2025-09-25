@@ -47,8 +47,8 @@ export class QuestionComponent extends LitElement {
 
     .popup {
       position: absolute;
-      left: 0;
-      right: 0;
+      left: inherit;
+      right: -1px;
       padding: 0 8px;
       background: white;
       border-radius: 8px;

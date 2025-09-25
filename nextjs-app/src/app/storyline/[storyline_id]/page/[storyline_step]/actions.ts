@@ -24,7 +24,7 @@ export async function completeChapter(
 ) {
     console.log(progress);
     return Promise.all([
-        progress.map(p => prisma.storylineProgress.create({ data: { ...p } }))
+        progress.map(p => prisma.storylineProgress.create({ data: { ...p, createdAt: new Date() } }))
     ]);   
 }
 
