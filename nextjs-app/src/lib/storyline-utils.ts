@@ -35,6 +35,7 @@ export interface StorylineStepDetails {
 
 export interface StorylineDetails {
   steps: number;
+  studentId: number;
   progress: {
     [step_number: number]: boolean;
   }
@@ -42,7 +43,7 @@ export interface StorylineDetails {
 
 export async function getStorylineDetails(storylineId: number): Promise<StorylineDetails | null> {
   try {
-    const storylineSteps = await prisma.storylineStep.findMany({
+    const [storylineSteps, storyline ] = await Promise.all([prisma.storylineStep.findMany({
       where: {
         storyline_id: storylineId,
       },
@@ -55,7 +56,7 @@ export async function getStorylineDetails(storylineId: number): Promise<Storylin
       orderBy: {
         step: 'asc',
       },
-    });
+    }), prisma.storyline.findFirst({ where: { storyline_id: storylineId }})]);
 
     if (!storylineSteps || storylineSteps.length === 0) {
       console.warn(`No steps found for storyline ID: ${storylineId}`);
@@ -69,7 +70,19 @@ export async function getStorylineDetails(storylineId: number): Promise<Storylin
       progress[step.step] = step.storyline_progress.length > 0;
     });
 
+    let studentId = 0;
+    if (storyline?.original_request) {
+      try {
+        const parsed = JSON.parse(storyline.original_request);
+        studentId = parsed.student_id || 0;
+      } catch (e) {
+        console.warn('Failed to parse storyline.original_request:', e);
+        studentId = 0;
+      }
+    }
+
     return {
+      studentId,
       steps: totalSteps,
       progress: progress,
     };

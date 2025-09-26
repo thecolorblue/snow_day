@@ -28,6 +28,7 @@ gcloud functions deploy generateStory \
   --region=us-central1 \
   --memory=1024mb \
   --cpu=2 \
+  --timeout=600s \
   --source=. \
   --entry-point=generateStory \
   --trigger-http \

@@ -25,7 +25,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  const handleAddStudent = async (formData: { name: string; friends: string; interests: string }) => {
+  const handleAddStudent = async (formData: { name: string; friends: string; interests: string; lexile: string }) => {
     try {
       const response = await fetch("/api/students", {
         method: "POST",

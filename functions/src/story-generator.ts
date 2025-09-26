@@ -11,10 +11,12 @@ export interface ParsedStoryline extends Storyline {
   style: string[];
   selected_interests: string[];
   friend: string[];
+  vocab_id: number;
+  student_id: number;
 }
 
 const chapterMap = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'];
-const storyCircleChapters = [
+export const storyCircleChapters = [
   "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting.",
   "Show what's missing in their life. This should set the stakes for the rest of the story. They desire something or are faced with a challenge that disrupts their normalcy. A magical creature or item is revealed but it is not clear to what use.",
   "The protagonist is forced to make a choice to leave their comfort zone, embarking on their journey. ",
@@ -25,7 +27,7 @@ const storyCircleChapters = [
   "The protagonist integrates what they've learned, resolving the journey with newfound wisdom or transformation.",
 ];
 const instructions = `
-You are an expert fiction writer for elementary students. You will write one chapter at a time. Each chapter should be about 300 words. 
+You are an expert fiction writer for elementary students. You will write one chapter at a time. Each chapter should be about 150 words. 
 Write stories in eight chapters, each corresponding to a step in the Dan Harmon Story Circle.
 
 Your output is always in markdown format.`;
@@ -60,11 +62,14 @@ export class StoryGenerator {
       selected_interests: string[];
       friend: string;
       vocab_id?: number;
+      student_id?: number;
     };
 
     return {
       ...storyline,
       words: requestData.words,
+      student_id: requestData.student_id || 0,
+      vocab_id: requestData.vocab_id || 0,
       genre: [requestData.genre],
       location: [requestData.location],
       style: [requestData.style],
@@ -74,7 +79,7 @@ export class StoryGenerator {
   }
 
   async generateContent(storylineData: ParsedStoryline): Promise<string[]> {
-    const { words, genre, location, style, selected_interests, friend } = storylineData;
+    const { words, genre, location, style, selected_interests, friend, vocab_id } = storylineData;
     const interests_string = selected_interests?.join(', ') || 'nothing in particular';
     const user_name = "Maeve"; // Assuming static user for now
     const user_age = 8; // Assuming static age for now
@@ -104,23 +109,18 @@ export class StoryGenerator {
     if (!storyCircleChapters[index]) {
       return Promise.resolve(null);
     }
-    const { words, genre, location, style, selected_interests, friend } = storylineData;
+    const { genre, location, style, selected_interests, vocab_id, student_id } = storylineData;
     const interests_string = selected_interests?.join(', ') || 'nothing in particular';
-    const user_name = "Maeve"; // Assuming static user for now
-    const user_age = 8; // Assuming static age for now
-
+    const words = await this.pickNextWords(vocab_id, student_id);
     const user_prompt = `
 Write the ${chapterMap[index]} chapter that should ${storyCircleChapters[index]}
 
 Story Description:
-Write an ${genre} story located in ${location} in the style of ${style} for ${user_name} who is ${user_age} years old. It should be very silly. Over the top silly.
-She likes ${interests_string}, and her best friend is ${friend}.
+Write an ${genre} story located in ${location} in the style of ${style}. It should be very silly. Over the top silly.
 The story must include the following words: ${words.join(', ')}.
 
 Previous Chapter:
 ${previousChapter}
-
-The chapter must include the following words: again, when, friend, from, month.
     `;
 
     const response = await openai.chat.completions.create({
@@ -166,7 +166,69 @@ The chapter must include the following words: again, when, friend, from, month.
     };
   }
 
-  async save(storylineData: ParsedStoryline, paragraphs: ProcessedParagraph[]) {
+  async pickNextWords(vocab_id: number, student_id: number, count: number = 5): Promise<string[]> {
+    const [vocab, progress] = await Promise.all([
+      prisma.vocab.findFirst({
+        where: {
+          id: vocab_id,
+        },
+      }),
+      prisma.storylineProgress.findMany({
+        where: {
+          student_id: student_id,
+        },
+        include: {
+          story_question: {
+            include: {
+              question: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!vocab) {
+      return [];
+    }
+
+    const uniqueWords = [...new Set(vocab.list.split(',').map(w => w.trim()))];
+
+    const progressMap = new Map<string, { attempts: number; duration: number }>();
+
+    for (const p of progress) {
+      const word = p.story_question.question.correct;
+      const existing = progressMap.get(word) || { attempts: 0, duration: 0 };
+      existing.attempts += p.attempts || 1;
+      existing.duration += p.duration || 0;
+      progressMap.set(word, existing);
+    }
+
+    uniqueWords.sort((a, b) => {
+      const aProgress = progressMap.get(a);
+      const bProgress = progressMap.get(b);
+
+      if (!aProgress && bProgress) return -1;
+      if (aProgress && !bProgress) return 1;
+      if (!aProgress && !bProgress) return 0;
+
+      if (aProgress && bProgress) {
+        if (aProgress.attempts >= 2 && bProgress.attempts < 2) return -1;
+        if (aProgress.attempts < 2 && bProgress.attempts >= 2) return 1;
+        if (aProgress.attempts >= 2 && bProgress.attempts >= 2) {
+          if (aProgress.attempts !== bProgress.attempts) {
+            return bProgress.attempts - aProgress.attempts;
+          }
+        }
+
+        return bProgress.duration - aProgress.duration;
+      }
+      return 0;
+    });
+
+    return uniqueWords.slice(0, 5);
+  }
+
+  async save(storylineData: ParsedStoryline, paragraphs: ProcessedParagraph[], index?: number) {
     const requestData = JSON.parse(storylineData.original_request as string) as {
       vocab_id?: number;
     };
@@ -182,9 +244,9 @@ The chapter must include the following words: again, when, friend, from, month.
         })
       ));
 
-      const storylineStepsData = createdStories.map((story, index) => ({
+      const storylineStepsData = createdStories.map((story, paragraphIndex) => ({
         storyline_id: storylineData.storyline_id,
-        step: index + 1,
+        step: index ? index + 1: paragraphIndex + 1,
         story_id: story.id,
       }));
 

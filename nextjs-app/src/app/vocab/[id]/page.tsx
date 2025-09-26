@@ -1,134 +1,23 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
+import prisma from '@/lib/prisma';
 
-interface VocabItem {
-  id: number;
-  title: string;
-  list: string;
-  createdAt: string;
-  student_vocab: {
-    student_id: number;
-    student: {
-      name: string;
-    };
-  }[];
-}
+export default async function VocabViewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const vocab = await prisma?.vocab.findUnique({
+    where: { id: parseInt(id) }
+  });
 
-// Helper function to format date properly
-const formatDate = (dateString?: string) => {
-  if (!dateString) return 'N/A';
-  
-  // Try to parse the date string
-  let date;
-  
-  // First try direct parsing (most common case)
-  date = new Date(dateString);
-  
-  // If that fails, try to handle potential format issues
-  if (isNaN(date.getTime())) {
-    // Try parsing as a timestamp (if it's numeric)
-    const timestamp = Date.parse(dateString);
-    if (!isNaN(timestamp)) {
-      date = new Date(timestamp);
-    } else {
-      // If still invalid, try to parse with more lenient approach
-      // This handles cases where the date might be in a different format from DB
-      const parsed = new Date(dateString.replace(/-/g, '/'));
-      if (!isNaN(parsed.getTime())) {
-        date = parsed;
-      } else {
-        return 'Invalid Date';
-      }
-    }
-  }
-  
-  // If we still have an invalid date, return error
-  if (isNaN(date.getTime())) {
-    return 'Invalid Date';
-  }
-  
-  return date.toLocaleDateString();
-};
-
-export default function VocabViewPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [vocab, setVocab] = useState<VocabItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const fetchVocab = async () => {
-        try {
-          const resolvedParams = await params;
-          const vocabId = parseInt(resolvedParams.id);
-          
-          if (isNaN(vocabId)) {
-            setError('Invalid vocab ID');
-            setLoading(false);
-            return;
-          }
-          
-          const response = await fetch(`/api/vocab/${vocabId}`);
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch vocab');
-          }
-          
-          const data = await response.json();
-          setVocab(data);
-        } catch (err) {
-          console.error('Error fetching vocab:', err);
-          setError('Failed to load vocab');
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchVocab();
-    }
-  }, [status, params]);
-
-  if (status === 'loading') {
+  if (!vocab) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Please sign in to view this page</div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading vocab...</div>
-      </div>
-    );
-  }
-
-  if (error || !vocab) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-red-500">{error || 'Vocab not found'}</div>
+        <div className="text-lg text-red-500">Vocab not found</div>
       </div>
     );
   }
 
   // Split the list into individual words
-  const words = vocab.list.split(',').map(word => word.trim()).filter(word => word.length > 0);
+  const words = vocab?.list?.split(',').map(word => word.trim()).filter(word => word.length > 0);
 
   return (
     <>
@@ -153,20 +42,6 @@ export default function VocabViewPage({ params }: { params: Promise<{ id: string
                 <div>
                   <p className="text-sm text-gray-600">Title</p>
                   <p className="text-lg font-medium text-gray-900">{vocab.title}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600">Created At</p>
-                  <p className="text-lg font-medium text-gray-900">
-                    {formatDate(vocab.createdAt)}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600">Student</p>
-                  <p className="text-lg font-medium text-gray-900">
-                    {vocab.student_vocab[0]?.student.name || 'Unknown'}
-                  </p>
                 </div>
               </div>
             </div>

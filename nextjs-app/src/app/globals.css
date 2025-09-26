@@ -97,7 +97,7 @@ body {
 
 .speed-component-container {
   width: 10vw;
-  max-height: 69vh;
+  max-height: calc(100vh - 207px);
 }
 
 .page-component {
@@ -109,5 +109,5 @@ body {
 
 .page-component-container {
   width: 79vw;
-  max-height: 69vh;
+  max-height: calc(100vh - 207px);
 }

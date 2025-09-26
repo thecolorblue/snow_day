@@ -10,11 +10,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, friends, interests } = await request.json();
+    const { name, friends, interests, lexile } = await request.json();
 
-    if (!name || !friends || !interests) {
+    if (!name || !friends || !interests || !lexile) {
       return NextResponse.json(
-        { error: 'Name, friends, and interests are required' },
+        { error: 'Name, friends, interests, and lexile are required' },
         { status: 400 }
       );
     }
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         name,
         friends,
         interests,
+        lexile,
         guardianId: guardian.id,
       },
     });

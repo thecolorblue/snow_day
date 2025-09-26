@@ -132,6 +132,7 @@ model Student {
   name               String
   friends            String
   interests          String
+  lexile             String?
   guardianId         Int?                @map("guardian_id")
   guardian           Guardian?           @relation(fields: [guardianId], references: [id], onDelete: SetNull)
   createdAt          DateTime            @default(now()) @map("created_at")
