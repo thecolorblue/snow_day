@@ -15,7 +15,6 @@ interface QuestionLoaderProps {
 
 // Fetch vocabs for all students (in a real app, you'd filter by current user's students)
 async function getVocabs(): Promise<VocabWithStudent[]> {
-  console.log("Fetching vocabs for students...");
   try {
     // Try to access the vocab model - if it fails, we'll catch the error
     const vocabs = await (prisma as any).vocab.findMany({
@@ -30,25 +29,21 @@ async function getVocabs(): Promise<VocabWithStudent[]> {
         createdAt: 'desc',
       },
     });
-    console.log(`Found ${vocabs.length} vocabs.`);
     return vocabs;
   } catch (error) {
     console.error("Error fetching vocabs:", error);
-    console.log("Vocab model may not be available yet in Prisma client, returning empty array");
     return []; // Return empty on error
   }
 }
 
 // Fetch all students
 async function getStudents(): Promise<Student[]> {
-  console.log("Fetching all students...");
   try {
     const students = await prisma.student.findMany({
       orderBy: {
         createdAt: 'desc',
       },
     });
-    console.log(`Found ${students.length} students.`);
     return students;
   } catch (error) {
     console.error("Error fetching students:", error);

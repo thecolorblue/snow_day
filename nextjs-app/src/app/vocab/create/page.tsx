@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import React from 'react';
@@ -12,12 +12,9 @@ interface Student {
   name: string;
 }
 
-export default async function VocabCreatePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ base_vocab: string }>;
-}) {
-  const { base_vocab } = await searchParams;
+export default function VocabCreatePage() {
+  const searchParams = useSearchParams();
+  const base_vocab = searchParams.get('base_vocab');
   const { data: session, status } = useSession();
   const router = useRouter();
   
@@ -39,7 +36,7 @@ export default async function VocabCreatePage({
         fetchBaseVocab(base_vocab);
       }
     }
-  }, [status]);
+  }, [status, base_vocab]);
 
   const fetchStudents = async () => {
     try {
