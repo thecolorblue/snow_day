@@ -20,7 +20,7 @@ const chapterMap = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'sev
 
 export const frameworks:{ [name: string]: string[] } = {
   'story_circle': [
-    "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting through the characters actions.",
+    "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting through the character's actions.",
     "Show what's missing in their life. This should set the stakes for the rest of the story. They desire something or are faced with a challenge that disrupts their normalcy. A magical creature or item is revealed but it is not clear to what use.",
     "The protagonist is forced to make a choice to leave their comfort zone, embarking on their journey. ",
     "They find obstacles in this new world. They fail their first challenge and must un-learn something foundational to their ordinary world to continue on their journey.",
@@ -43,7 +43,7 @@ export const frameworks:{ [name: string]: string[] } = {
   ]
 };
 export const storyCircleChapters = [
-  "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting through the characters actions.",
+  "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting through the character's actions.",
   "Show what's missing in their life. This should set the stakes for the rest of the story. They desire something or are faced with a challenge that disrupts their normalcy. A magical creature or item is revealed but it is not clear to what use.",
   "The protagonist is forced to make a choice to leave their comfort zone, embarking on their journey. ",
   "They find obstacles in this new world. They fail their first challenge and must un-learn something foundational to their ordinary world to continue on their journey.",
@@ -54,7 +54,7 @@ export const storyCircleChapters = [
 ];
 const instructions = `
 You are an expert fiction writer for elementary students. You will write one chapter at a time. Each chapter should be about 150 words. 
-Do not repeat details from the story that have already been stated. Prefer showing details through the characters actions rather than telling the reader. 
+Do not repeat details from the story that have already been stated. Prefer showing details through the character's actions rather than telling the reader. 
 Your output is always in markdown format.`;
 const comprehensionInstructions = `
 Write a comprehension question for the given text. Keep the question short and at the same reading level as the text. 

@@ -189,7 +189,7 @@ export async function createComprehensionQuestion(instructions: string, paragrap
 
   // Generate answers
   const answers = await retryApiCall(async () => {
-    const answersPrompt = `Generate 3-4 possible answers for this comprehension question based on the given text. The first answer should be the correct one, followed by one answer that is close, and 1-2 answers that are obviously not true. Answers should be seperated by a comma.
+    const answersPrompt = `Generate 3-4 possible answers for this comprehension question based on the given text. The first answer should be the correct one, followed by one answer that is close, and 1-2 answers that are obviously not true. Answers should be separated by a comma.
 
 Question: ${question}
 Paragraph: ${paragraph}`;
@@ -207,7 +207,7 @@ Paragraph: ${paragraph}`;
     const answers = text.split(',');
     
     if (!answers) {
-      throw new Error(`response formating incorrect ${text}`)
+      throw new Error(`response formatting incorrect ${text}`)
     }
 
     if (answers.length > 2) {

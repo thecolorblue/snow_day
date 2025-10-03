@@ -223,7 +223,7 @@ export async function getFrontPageData(guardianEmail: string): Promise<FrontPage
     storylineStats.push(...storylines);
   }
 
-  // Get demo storylines (storylines with id 1 and 2)
+  // Get demo storylines (storylines with id 52)
   const demoStorylines: DemoStoryline[] = [];
   try {
     const demos = await prisma.$queryRaw<Array<{
