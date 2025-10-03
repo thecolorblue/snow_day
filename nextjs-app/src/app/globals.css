@@ -97,7 +97,7 @@ body {
 
 .speed-component-container {
   width: 10vw;
-  max-height: 69vh;
+  max-height: calc(100vh - 207px);
 }
 
 .page-component {
@@ -105,9 +105,12 @@ body {
 }
 .story-content {
   height: 100%;
+  background: url(/paper-03.jpg) 0px 0px / cover;
+  filter: brightness(115%);
 }
 
 .page-component-container {
-  width: 79vw;
-  max-height: 69vh;
+  width: 86vw;
+  max-height: calc(100vh - 181px);
+  overflow: scroll; 
 }

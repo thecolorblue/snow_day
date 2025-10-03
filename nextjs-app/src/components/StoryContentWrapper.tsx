@@ -26,6 +26,7 @@ interface StoryContentWrapperProps {
   onScrollStart?: () => void;
   onScroll?: (timePosition: number) => void;
   onScrollEnd?: () => void;
+  onSeek?: (timePosition: number, duration: number) => void;
   className?: string;
 }
 
@@ -34,14 +35,17 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
   questions,
   storyMap,
   onScrollStart,
-  onScroll,
+  onSeek,
   onScrollEnd,
-  className = "story-content overflow-y-auto rounded-lg bg-white"
+  className = "story-content overflow-y-auto rounded-lg p-4"
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const storyElementRef = useRef<any>(null);
   const { guess } = useQuestions();
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+  const [comprehensionQuestions, setComprehensionQuestions] = useState<Question[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: string}>({});
+  const [answerResults, setAnswerResults] = useState<{[key: number]: 'correct' | 'incorrect' | null}>({});
 
   useEffect(() => {
     // Import the web component dynamically
@@ -53,6 +57,10 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
     let storyElement;
     if (!container) return;
 
+    // Separate comprehension questions from other questions
+    const nonComprehensionQuestions = questions.filter(q => q.type !== 'comprehension');
+    const comprehensionQs = questions.filter(q => q.type === 'comprehension');
+    setComprehensionQuestions(comprehensionQs);
 
     if (container.children?.[0]?.nodeName === 'STORY-CONTENT') {
       storyElement = container.children[0];
@@ -61,7 +69,7 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
       storyElement = document.createElement('story-content');
       storyElementRef.current = storyElement;
       storyElement.markdown = markdown;
-      storyElement.questions = JSON.stringify(questions);
+      storyElement.questions = JSON.stringify(nonComprehensionQuestions);
       storyElement.storyMap = JSON.stringify(storyMap);
 
       // Clear container and append the element
@@ -74,31 +82,31 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
       guess(event.detail.questionId, event.detail.answer);
     };
 
-    const handleStoryScroll = (event: CustomEvent) => {
-      const element = event.target as HTMLElement;
-      const scrollPosition = element.shadowRoot?.children[0].scrollTop;
-      const maxScroll = element.scrollHeight;
-      const scrollPercentage = scrollPosition && maxScroll > 0 ? scrollPosition / maxScroll : 0;
-
-      console.log(scrollPosition);
-      // Convert scroll percentage to time position (assuming storyMap represents timeline)
-      if (storyMap && storyMap.length > 0) {
-        const totalDuration = Math.max(...storyMap.map(word => word.endTime));
-        const timePosition = scrollPercentage * totalDuration;
-        onScroll?.(timePosition);
+    const handleSelectWord = (event: CustomEvent) => {
+      // find start of word time position
+      // tell parent to play from timeposition for word duration
+      const { wordIndex } = event.detail;
+      
+      if (storyMap && wordIndex >= 0 && wordIndex < storyMap.length) {
+        const selectedWord = storyMap[wordIndex];
+        const startTime = selectedWord.startTime;
+        const duration = selectedWord.endTime - selectedWord.startTime;
+        
+        // Call onSeek with the word's start time
+        onSeek?.(startTime, duration);
       }
-    };
+    }
 
     // Add event listeners
-    storyElement.addEventListener('story-scroll', handleStoryScroll as EventListener);
+    storyElement.addEventListener('story-select-word', handleSelectWord as EventListener);
     storyElement.addEventListener('question-guess', handleQuestionGuess as EventListener);
 
 
     return () => {
-      storyElement.removeEventListener('story-scroll', handleStoryScroll as EventListener);
+      storyElement.removeEventListener('story-select-word', handleSelectWord as EventListener);
       storyElement.removeEventListener('question-guess', handleQuestionGuess as EventListener);
     };
-  }, [markdown, questions, storyMap, onScroll, onScrollStart, onScrollEnd, guess]);
+  }, [markdown, questions, storyMap, onSeek, onScrollStart, onScrollEnd, guess]);
 
   useImperativeHandle(ref, () => ({
     updateHighlighter: (timeUpdate: number) => {
@@ -138,12 +146,72 @@ const StoryContentWrapper = forwardRef<StoryContentWrapperRef, StoryContentWrapp
     }
   }, [highlightedWordIndex]);
 
+  const handleComprehensionAnswer = (questionId: number, answer: string) => {
+    const question = comprehensionQuestions.find(q => q.id === questionId);
+    if (!question) return;
+
+    setSelectedAnswers(prev => ({ ...prev, [questionId]: answer }));
+    
+    const isCorrect = answer === question.correct;
+    setAnswerResults(prev => ({ ...prev, [questionId]: isCorrect ? 'correct' : 'incorrect' }));
+    
+    // Call the guess callback
+    guess(questionId, answer);
+  };
+
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div>
+      <div
+        className={className}>
+          <div ref={containerRef}></div>
+      
+      {/* Comprehension Questions */}
+      {comprehensionQuestions.length > 0 && (
+        <div className="mt-4 space-y-4">
+          {comprehensionQuestions.map((question) => {
+            const answers = question.answers ? question.answers.split(',').map(a => a.trim()) : [];
+            const result = answerResults[question.id];
+            const selectedAnswer = selectedAnswers[question.id];
+            
+            return (
+              <div
+                key={question.id}
+                className={`p-4 border-2 rounded-lg ${
+                  result === 'correct'
+                    ? 'border-green-500'
+                    : result === 'incorrect'
+                    ? 'border-red-500'
+                    : 'border-gray-300'
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-3">{question.question}</h3>
+                <div className="space-y-2">
+                  {answers.map((answer, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleComprehensionAnswer(question.id, answer)}
+                      // disabled={!!selectedAnswer}
+                      className={`w-full text-left p-3 rounded border transition-colors ${
+                        selectedAnswer === answer
+                          ? result === 'correct'
+                            ? 'bg-green-100 border-green-500'
+                            : 'bg-red-100 border-red-500'
+                          : selectedAnswer
+                          ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
+                          : 'bg-white border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {answer}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      </div>
+    </div>
   );
 });
 

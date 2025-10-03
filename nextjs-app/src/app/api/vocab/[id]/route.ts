@@ -49,15 +49,6 @@ export async function GET(
       return NextResponse.json({ error: 'Vocab not found' }, { status: 404 });
     }
 
-    // Verify that this vocab belongs to one of the guardian's students
-    const isValid = vocab.student_vocab.some(sv => 
-      guardian.students.some(student => student.id === sv.student_id)
-    );
-
-    if (!isValid) {
-      return NextResponse.json({ error: 'Vocab not found or does not belong to this guardian' }, { status: 404 });
-    }
-
     return NextResponse.json(vocab);
   } catch (error) {
     console.error('Error fetching vocab:', error);

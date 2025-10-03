@@ -9,6 +9,35 @@ interface AnswerData {
     // Add timing data if implemented (e.g., lastEditTimestamp)
 }
 
+export interface StorylineProgress {
+    storyline_id: number;
+    storyline_step_id: number;
+    student_id: number;
+    story_question_id: number;
+    duration: number;
+    score: number;
+    attempts: number;
+}
+
+export async function completeChapter(
+    progress: StorylineProgress[]
+) {
+    return Promise.all([
+        progress.map(p => prisma.storylineProgress.create({ data: { ...p, createdAt: new Date() } }))
+    ]);   
+}
+
+export async function getCompletedStorylines(storylineId: number) {
+    return prisma.storyline.update({
+        where: {
+            storyline_id: storylineId
+        },
+        data: {
+            status: 'finished'
+        }
+    })
+}
+
 export async function submitStorylineStepAction(
     storylineId: number,
     storylineStep: number,
@@ -125,39 +154,45 @@ export async function submitStorylineStepAction(
     const actualStorylineStepId = stepRecord.storyline_step_id; // Use the correct field name
     console.log(`Found StorylineStep ID: ${actualStorylineStepId}`);
 
+    /** DEPRECATED: mobile view uses `completeChapter` instead of this function
+     * This uses an outdated model for progress. Commenting out to fix the build error.
+     */
     // 6. Prepare and save progress entries
-    const progressEntries = answers.map(answer => {
-        const correctAnswerData = correctAnswersMap.get(answer.questionId);
-        const storyQuestionId = correctAnswerData?.storyQuestionId;
-        if (!storyQuestionId) return null; // Skip if no link found
+    // const progressEntries:StorylineProgress[] = answers.map(answer => {
+    //     const correctAnswerData = correctAnswersMap.get(answer.questionId);
+    //     const storyQuestionId = correctAnswerData?.storyQuestionId;
+    //     if (!storyQuestionId) return null; // Skip if no link found
 
-        return {
-            storyline_id: storylineId,
-            storyline_step_id: actualStorylineStepId, // Use the fetched ID
-            story_question_id: storyQuestionId,
-            score: (answer.submittedAnswer?.trim().toLowerCase() === correctAnswerData.correct.toLowerCase()) ? 1 : 0, // Score per question
-            // Get attempts from FormData (assuming it's sent like 'attempts_QUESTIONID')
-            attempts: parseInt(formData.get(`attempts_${answer.questionId}`) as string || '1', 10),
-            duration: durationSeconds,
-            createdAt: new Date(), // Add current timestamp
-        };
-    }).filter(entry => entry !== null); // Remove null entries
+    //     return {
+    //         storyline_id: storylineId,
+    //         student_id: student_id,
+    //         storyline_step_id: actualStorylineStepId, // Use the fetched ID
+    //         story_question_id: storyQuestionId,
+    //         score: (answer.submittedAnswer?.trim().toLowerCase() === correctAnswerData.correct.toLowerCase()) ? 1 : 0, // Score per question
+    //         // Get attempts from FormData (assuming it's sent like 'attempts_QUESTIONID')
+    //         attempts: parseInt(formData.get(`attempts_${answer.questionId}`) as string || '1', 10),
+    //         duration: durationSeconds,
+    //         createdAt: new Date(), // Add current timestamp
+    //     };
+    // }).filter(entry => entry !== null); // Remove null entries
 
-    if (progressEntries.length > 0) {
-        try {
-            await prisma.storylineProgress.createMany({
-                data: progressEntries,
-            });
-            console.log("Progress saved successfully.");
-        } catch (error) {
-            console.error("Error saving storyline progress:", error);
-            // Handle error appropriately
-        }
-    }
+    // if (progressEntries.length > 0) {
+    //     try {
+    //         await prisma.storylineProgress.createMany({
+    //             data: progressEntries,
+    //         });
+    //         console.log("Progress saved successfully.");
+    //     } catch (error) {
+    //         console.error("Error saving storyline progress:", error);
+    //         // Handle error appropriately
+    //     }
+    // }
 
     // 7. Revalidate path to show updated progress (if implemented)
     // revalidatePath(`/storyline/${storylineId}/page/${storylineStep}`);
     // revalidatePath(`/storylines`); // Maybe revalidate dashboard too
+
+    // check if all steps for the storyline id have progress for the current student id
 
     // 8. Return result
     return {

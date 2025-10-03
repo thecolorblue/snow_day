@@ -16,8 +16,10 @@ export const generateStory: HttpFunction = async (req: Request, res: Response) =
     const firstChapter = await storyGenerator.chapterGenerator(storylineData)
       .then((paragraph: string | null) => storyGenerator.processParagraph(paragraph || '', storylineData, 0));
 
+    console.info(`Chapter 1 completed`);
+    res.write(`Chapter 1 completed`);
+
     storyGenerator.save(storylineData, [firstChapter])
-        .then(() => res.status(200).send({ success: true, storylineId: storyline_id }))
         .then(async () => {
           let nextChapter;
           let previousChapter = firstChapter.content;
@@ -25,11 +27,14 @@ export const generateStory: HttpFunction = async (req: Request, res: Response) =
           let index = 1;
           while(nextChapter = await storyGenerator.chapterGenerator(storylineData, previousChapter, index)) {
             processedChapter = await storyGenerator.processParagraph(nextChapter, storylineData, index);
-            await storyGenerator.save(storylineData, [processedChapter]);
+            await storyGenerator.save(storylineData, [processedChapter], index);
             previousChapter = nextChapter;
             index++;
+            console.info(`Chapter ${index} completed`);
+            res.write(`Chapter ${index} completed`);
           }
-        });
+        })
+        .then(() => res.end(JSON.stringify({ success: true, storylineId: storyline_id })));
 
   } catch (error: any) {
     console.error(error);

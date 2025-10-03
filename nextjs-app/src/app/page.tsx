@@ -4,6 +4,8 @@ import { AppHeader } from "@/components";
 import { useSession, signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import NewStudentForm from "./profile/NewStudentForm";
+import { VocabProgress } from "@/lib/front-page-queries";
 
 interface StudentStats {
   id: number;
@@ -21,14 +23,31 @@ interface VocabStats {
 interface StorylineStats {
   storyline_id: number;
   student_name: string;
+  student_id: number;
   pages: number;
   original_request: string | null;
+}
+
+interface DemoStoryline {
+  storyline_id: number;
+  title: string;
+  pages: number;
 }
 
 interface FrontPageData {
   students: StudentStats[];
   vocabs: VocabStats[];
   storylines: StorylineStats[];
+  demoStorylines: DemoStoryline[];
+  hasStorylineProgress: boolean;
+  vocabProgress: VocabProgress[];
+}
+
+interface FormData {
+  name: string;
+  friends: string;
+  interests: string;
+  lexile: string;
 }
 
 export default function Home() {
@@ -74,6 +93,47 @@ export default function Home() {
       callbackUrl: '/',
     });
   };
+ 
+  const handleCreateStudent = async (formData: FormData) => {
+    try {
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setShowCreateStudentModal(false);
+        fetchFrontPageData(); // Refresh data
+      } else {
+        console.error('Failed to create student');
+      }
+    } catch (error) {
+      console.error('Error creating student:', error);
+    }
+  };
+
+  // Helper functions to determine user state
+  const getUserState = () => {
+    if (!frontPageData) return 'loading';
+    
+    const hasStudents = frontPageData.students.length > 0;
+    const hasStorylines = frontPageData.storylines.length > 0;
+    const hasProgress = frontPageData.hasStorylineProgress;
+    
+    if (!hasStudents) return 'no-student';
+    if (!hasStorylines) return 'has-student-no-stories';
+    if (!hasProgress) return 'has-student-stories-no-progress';
+    return 'has-student-stories-progress';
+  };
+
+  const getStudentStorylines = (studentId: number) => {
+    if (!frontPageData) return [];
+    return frontPageData.storylines.filter(s => s.student_id === studentId);
+  };
+
 
   if (status === "loading" || loading) {
     return (
@@ -167,182 +227,211 @@ export default function Home() {
     );
   }
 
-  const hasStudents = frontPageData && frontPageData.students.length > 0;
-  const hasVocabs = frontPageData && frontPageData.vocabs.length > 0;
-  const hasStorylines = frontPageData && frontPageData.storylines.length > 0;
+  const userState = getUserState();
+
+  const renderNoStudentState = () => (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow rounded-lg p-6 mb-8">
+        <div className="text-center mb-6">
+          <p className="text-lg text-gray-700 mb-4">
+            For a quick demo of the app, try out these two storylines. When you are done, try adding your student to your account.
+          </p>
+          <button
+            onClick={() => setShowCreateStudentModal(true)}
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+          >
+            Create Student
+          </button>
+        </div>
+        
+        {frontPageData && frontPageData.demoStorylines.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {frontPageData.demoStorylines.map((storyline) => (
+              <div key={storyline.storyline_id} className="border rounded-lg p-4">
+                <h3 className="font-medium text-gray-900 mb-2">Example Story</h3>
+                <p className="text-sm text-gray-600 mb-3">{storyline.pages} pages</p>
+                <Link
+                  href={`/storyline/${storyline.storyline_id}/mobile/1`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Try Demo Storyline
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderHasStudentNoStoriesState = () => (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="text-center mb-6">
+          <p className="text-lg text-gray-700 mb-4 p-4">
+            Now that you have added your student to your account you can also start creating stories for them to enjoy. A story is created by AI from a vocab list and some information from the student's profile.
+          </p>
+          <Link
+            href="/storylines/create"
+            className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+          >
+            Create a Story for Your Student
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderHasStudentStoriesNoProgressState = () => {
+    const student = frontPageData?.students[0];
+    const studentStorylines = student ? getStudentStorylines(student.id) : [];
+    
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <div className="text-center mb-6">
+            <p className="text-lg text-gray-700 mb-4">
+              Give your device to the student or read the story together. Let them answer the questions at their own pace. Double clicking on a word will jump the audio to that spot. The vertical range bar on the right side adjusts the speed of the audio playback.
+            </p>
+            <Link
+              href="/storylines/create"
+              className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+            >
+              Create a Story for Your Student
+            </Link>
+          </div>
+        </div>
+        
+        {studentStorylines.length > 0 && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Storylines</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {studentStorylines.map((storyline) => (
+                <div key={storyline.storyline_id} className="border rounded-lg p-4">
+                  <div className="mb-2">
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      Student: {storyline.student_name}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {storyline.pages} pages
+                    </p>
+                  </div>
+                  {storyline.original_request && (
+                    <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                      {storyline.original_request.length > 100
+                        ? storyline.original_request.substring(0, 100) + "..."
+                        : storyline.original_request}
+                    </p>
+                  )}
+                  <Link
+                    href={`/storyline/${storyline.storyline_id}/mobile/1`}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    Start Storyline
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderHasStudentStoriesProgressState = () => {
+    const student = frontPageData?.students[0];
+    const studentStorylines = student ? getStudentStorylines(student.id) : [];
+    
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <div className="text-center mb-6">
+            <p className="text-lg text-gray-700 mb-4">
+              Keep generating new stories as much as you want, and see your student's progress learning their vocab list.
+            </p>
+            <Link
+              href="/storylines/create"
+              className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+            >
+              Create Story
+            </Link>
+          </div>
+        </div>
+        
+        {studentStorylines.length > 0 && (
+          <div className="bg-white shadow rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Student's Storylines</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {studentStorylines.map((storyline) => (
+                <div key={storyline.storyline_id} className="border rounded-lg p-4">
+                  <div className="mb-2">
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      Student: {storyline.student_name}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {storyline.pages} pages
+                    </p>
+                  </div>
+                  {storyline.original_request && (
+                    <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                      {storyline.original_request.length > 100
+                        ? storyline.original_request.substring(0, 100) + "..."
+                        : storyline.original_request}
+                    </p>
+                  )}
+                  <Link
+                    href={`/storyline/${storyline.storyline_id}/mobile/1`}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    Continue Storyline
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white shadow round-lg p-6">
+          {/* Vocab Progress Bars */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-4">Vocabulary Progress</h3>
+            {frontPageData?.vocabProgress.map((vocab) => (
+              <div key={vocab.vocab_id} className="mb-4 last:mb-0">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">Vocab {vocab.vocab_title}</span>
+                  <span className="text-sm text-gray-500">{vocab.progress_percentage}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${vocab.progress_percentage}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
       <AppHeader />
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {session.user?.email}</p>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Students Section */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Students</h2>
-                {!hasStudents && (
-                  <Link
-                    href="/profile"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                  >
-                    Create Student
-                  </Link>
-                )}
-              </div>
-
-              {hasStudents ? (
-                <div className="space-y-4">
-                  {frontPageData.students.map((student) => (
-                    <div key={student.id} className="border rounded-lg p-4">
-                      <h3 className="font-medium text-gray-900 mb-2">{student.name}</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                        <div>
-                          <span className="font-medium">Storylines completed (past week):</span>
-                          <span className="ml-2 text-blue-600 font-semibold">{student.completedStorylines}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Correct answers (past week):</span>
-                          <span className="ml-2 text-green-600 font-semibold">{student.correctAnswers}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No students setup yet</p>
-                  <Link
-                    href="/profile"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Create your first student
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Vocabularies Section */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Vocabularies</h2>
-                {!hasVocabs && (
-                  <Link
-                    href="/vocab/create"
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                  >
-                    Create Vocab
-                  </Link>
-                )}
-              </div>
-
-              {hasVocabs ? (
-                <div className="space-y-4">
-                  {frontPageData.vocabs.map((vocab) => (
-                    <div key={vocab.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-medium text-gray-900">{vocab.title}</h3>
-                        <span className="text-sm text-gray-600">
-                          <span className="font-medium">{vocab.numberOfWords}</span> words
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No vocabularies created yet</p>
-                  <Link
-                    href="/vocab/create"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                  >
-                    Create your first vocabulary
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Storylines Section */}
-          {hasStorylines && (
-            <div className="mt-8 bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Active Storylines</h2>
-                <Link
-                  href="/storylines"
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  View all storylines →
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {frontPageData.storylines.map((storyline) => (
-                  <div key={storyline.storyline_id} className="border rounded-lg p-4">
-                    <div className="mb-2">
-                      <h3 className="font-medium text-gray-900 mb-1">
-                        Student: {storyline.student_name}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {storyline.pages} pages
-                      </p>
-                    </div>
-                    {storyline.original_request && (
-                      <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                        {storyline.original_request.length > 100
-                          ? storyline.original_request.substring(0, 100) + "..."
-                          : storyline.original_request}
-                      </p>
-                    )}
-                    <Link
-                      href={`/storyline/${storyline.storyline_id}/mobile/1`}
-                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      Continue storyline
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          <div className="mt-8 bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link
-                href="/profile"
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Manage Students
-              </Link>
-              <Link
-                href="/vocab"
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Manage Vocabularies
-              </Link>
-              <Link
-                href="/storylines/create"
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Create Storyline
-              </Link>
-              <Link
-                href="/storylines"
-                className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                View All Storylines
-              </Link>
-            </div>
-          </div>
-        </div>
+        {userState === 'no-student' && renderNoStudentState()}
+        {userState === 'has-student-no-stories' && renderHasStudentNoStoriesState()}
+        {userState === 'has-student-stories-no-progress' && renderHasStudentStoriesNoProgressState()}
+        {userState === 'has-student-stories-progress' && renderHasStudentStoriesProgressState()}
       </div>
+
+      {/* New Student Modal */}
+      <NewStudentForm
+        isOpen={showCreateStudentModal}
+        onClose={() => setShowCreateStudentModal(false)}
+        onSubmit={handleCreateStudent}
+      />
     </>
   );
 }

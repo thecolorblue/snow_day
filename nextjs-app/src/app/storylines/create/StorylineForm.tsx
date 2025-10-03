@@ -2,13 +2,15 @@
 
 import React, { useState, useCallback } from 'react'; // Add useCallback
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'; // Import hooks
+import { useFormStatus } from 'react-dom'; // Import useFormStatus for loading state
 import { Student } from '@prisma/client'; // Import Student type
 import { createStorylineAction } from './actions'; // Import the Server Action
 
 // Type for vocab with student info
-type VocabWithStudent = {
+export interface VocabWithStudent {
   id: number;
   list: string;
+  title: string;
   createdAt: Date;
   student_vocab: {
     student: Student;
@@ -40,6 +42,50 @@ const randomSelectMultiple = (options: { value: string; text: string }[]): strin
     return shuffled.slice(0, randomCount).map(opt => opt.value);
 };
 
+// Submit button component that uses useFormStatus
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={`w-full px-4 py-2 text-white rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center ${
+        pending
+          ? 'bg-gray-400 cursor-not-allowed'
+          : 'bg-blue-600 hover:bg-blue-700'
+      }`}
+    >
+      {pending ? (
+        <>
+          <svg
+            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          Creating Storyline...
+        </>
+      ) : (
+        'Create Storyline'
+      )}
+    </button>
+  );
+}
 
 export default function StorylineForm({
   vocabs,
@@ -57,15 +103,64 @@ export default function StorylineForm({
   const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<string>('');
 
   // Prepare options for multi-select randomizer
   const interestOptions = staticInterests.map(i => ({ value: i, text: i }));
   const friendOptions = staticFriends.map(f => ({ value: f, text: f }));
 
+  // Auto-select student if only one exists
+  React.useEffect(() => {
+    if (students.length === 1 && !selectedStudent) {
+      const student = students[0] as Student & { lexile?: string };
+      setSelectedStudent(student.id.toString());
+      // Set the lexile value in the style textarea
+      if (student.lexile) {
+        setSelectedStyle(`lexile level ${student.lexile}`);
+      }
+    }
+  }, [students, selectedStudent]);
+
+  // Handle student selection change
+  const handleStudentChange = (studentId: string) => {
+    setSelectedStudent(studentId);
+    if (studentId) {
+      const student = students.find(s => s.id.toString() === studentId) as (Student & { lexile?: string }) | undefined;
+      if (student && student.lexile) {
+        setSelectedStyle(student.lexile);
+      } else {
+        setSelectedStyle('');
+      }
+    } else {
+      setSelectedStyle('');
+    }
+  };
+
   // The form uses a Server Action (`createStorylineAction`), so no manual handleSubmit needed here.
 
   return (
     <form action={createStorylineAction} className="bg-white p-6 rounded-lg shadow-md space-y-6">
+      {/* Student Selection */}
+      <div>
+        <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-1">Select Student:</label>
+        <select
+          id="student"
+          name="selected_student"
+          value={selectedStudent}
+          onChange={(e) => handleStudentChange(e.target.value)}
+          className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          required
+        >
+          <option value="">-- Select a Student --</option>
+          {students.map((student) => (
+            <option key={student.id} value={student.id}>
+              {student.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500 mt-1">Select the student this storyline is for.</p>
+      </div>
+
       {/* Vocab Selection Dropdown */}
       <div>
         <label htmlFor="vocab" className="block text-sm font-medium text-gray-700 mb-1">Select Vocabulary List:</label>
@@ -80,8 +175,7 @@ export default function StorylineForm({
           <option value="">-- Select a Vocabulary List --</option>
           {vocabs.map((vocab) => (
             <option key={vocab.id} value={vocab.id}>
-              Vocab #{vocab.id}: {vocab.list.split(',').slice(0, 3).join(', ')}
-              {vocab.list.split(',').length > 3 ? '...' : ''}
+              Vocab #{vocab.id}: {vocab.title} ({vocab.list.split(',').length} words)
               ({vocab.student_vocab.map(sv => sv.student.name).join(', ')})
             </option>
           ))}
@@ -140,25 +234,15 @@ export default function StorylineForm({
       {/* Style */}
       <div>
         <label htmlFor="styles" className="block text-sm font-medium text-gray-700 mb-1">Choose a Style:</label>
-        <div className="flex items-center space-x-2">
-          <select
-            id="styles"
-            name="styles"
-            value={selectedStyle}
-            onChange={(e) => setSelectedStyle(e.target.value)}
-            className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          >
-            <option value="">--Select a Style--</option>
-            {styles.map(style => <option key={style} value={style}>{style}</option>)}
-          </select>
-          <button
-            type="button"
-            onClick={() => setSelectedStyle(randomSelect(styles))}
-            className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
-          >
-            Random
-          </button>
-        </div>
+        <textarea
+          id="styles"
+          name="styles"
+          value={selectedStyle}
+          onChange={(e) => setSelectedStyle(e.target.value)}
+          placeholder="Describe the style you want for your story..."
+          rows={3}
+          className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm resize-vertical"
+        />
       </div>
 
       {/* Interests */}
@@ -175,11 +259,19 @@ export default function StorylineForm({
             style={{ minHeight: '100px' }}
           >
              {/* No default "--Select..." needed for multi-select usually */}
-            {staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)}
+            {selectedStudent ?
+              students.find(s => s.id.toString() === selectedStudent)?.interests?.split(',').map((interest: string) => <option key={interest} value={interest}>{interest}</option>) ||
+              staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)
+              : staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)
+            }
           </select>
           <button
             type="button"
-            onClick={() => setSelectedInterests(randomSelectMultiple(interestOptions))}
+            onClick={() => setSelectedInterests(randomSelectMultiple(
+              selectedStudent ?
+                (students.find(s => s.id.toString() === selectedStudent)?.interests?.split(',') || staticInterests).map(i => ({ value: i, text: i }))
+                : interestOptions
+            ))}
             className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
           >
             Random
@@ -200,11 +292,19 @@ export default function StorylineForm({
             className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             style={{ minHeight: '80px' }}
           >
-            {staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)}
+            {selectedStudent ?
+              students.find(s => s.id.toString() === selectedStudent)?.friends?.split(',').map((friend: string) => <option key={friend} value={friend}>{friend}</option>) ||
+              staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)
+              : staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)
+            }
           </select>
           <button
             type="button"
-            onClick={() => setSelectedFriends(randomSelectMultiple(friendOptions))}
+            onClick={() => setSelectedFriends(randomSelectMultiple(
+              selectedStudent ?
+                (students.find(s => s.id.toString() === selectedStudent)?.friends?.split(',') || staticFriends).map(i => ({ value: i, text: i }))
+                : friendOptions
+            ))}
             className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
           >
             Random
@@ -227,12 +327,7 @@ export default function StorylineForm({
         </label>
       </div> */}
 
-      <button
-        type="submit"
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        Create Storyline
-      </button>
+      <SubmitButton />
     </form>
   );
 }

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
-import { Student } from '@prisma/client'; // Import Student type
+import { Student, Guardian } from '@prisma/client'; // Import Student type
 import StorylineForm from './StorylineForm'; // Import the form component
+import { VocabWithStudent } from './StorylineForm';
 
 // Define props including the static lists and searchParams
 interface QuestionLoaderProps {
@@ -10,21 +11,11 @@ interface QuestionLoaderProps {
   styles: string[];
   interests: string[];
   friends: string[];
+  guardian: Guardian
 }
 
-// Type for vocab with student info
-type VocabWithStudent = {
-  id: number;
-  list: string;
-  createdAt: Date;
-  student_vocab: {
-    student: Student;
-  }[];
-};
-
 // Fetch vocabs for all students (in a real app, you'd filter by current user's students)
-async function getVocabs(): Promise<VocabWithStudent[]> {
-  console.log("Fetching vocabs for students...");
+async function getVocabs(guardianId: number): Promise<VocabWithStudent[]> {
   try {
     // Try to access the vocab model - if it fails, we'll catch the error
     const vocabs = await (prisma as any).vocab.findMany({
@@ -38,26 +29,31 @@ async function getVocabs(): Promise<VocabWithStudent[]> {
       orderBy: {
         createdAt: 'desc',
       },
+      where: {
+        OR: [
+          { guardianId: guardianId },
+          { guardianId: null }
+        ]
+      }
     });
-    console.log(`Found ${vocabs.length} vocabs.`);
     return vocabs;
   } catch (error) {
     console.error("Error fetching vocabs:", error);
-    console.log("Vocab model may not be available yet in Prisma client, returning empty array");
     return []; // Return empty on error
   }
 }
 
 // Fetch all students
-async function getStudents(): Promise<Student[]> {
-  console.log("Fetching all students...");
+async function getStudents(guardianId: number): Promise<Student[]> {
   try {
     const students = await prisma.student.findMany({
       orderBy: {
         createdAt: 'desc',
       },
+      where: {
+        guardianId: guardianId
+      }
     });
-    console.log(`Found ${students.length} students.`);
     return students;
   } catch (error) {
     console.error("Error fetching students:", error);
@@ -73,11 +69,11 @@ export default async function QuestionLoader({
   styles,
   interests: staticInterests, // Rename to avoid conflict
   friends: staticFriends,     // Rename to avoid conflict
+  guardian,
 }: QuestionLoaderProps) {
-  // Fetch vocabs and students in parallel
   const [vocabs, students] = await Promise.all([
-    getVocabs(),
-    getStudents(),
+    getVocabs(guardian.id),
+    getStudents(guardian.id),
   ]);
 
   // Render the form, passing the fetched vocabs and static lists

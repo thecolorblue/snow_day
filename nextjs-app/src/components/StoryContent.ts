@@ -6,6 +6,48 @@ import { QuestionStatus } from './QuestionsContext';
 import { StoryMap } from '@/app/storyline/[storyline_id]/page/[storyline_step]/page';
 import sanitizeHtml from 'sanitize-html';
 
+/**
+ * A reusable double-tap detection utility that dispatches a custom 'doubletap' event.
+ * @param {number} doubleTapMs - The maximum time (in ms) between taps to be considered a double-tap.
+ */
+function detectDoubleTap(doubleTapMs = 300) {
+  let timeout: NodeJS.Timeout | null = null;
+  let lastTap = 0;
+
+  return function(event: Event) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+
+    // Check if the time between taps is within the doubleTapMs threshold
+    if (tapLength > 0 && tapLength < doubleTapMs) {
+      event.preventDefault();
+      const doubleTap = new CustomEvent("doubletap", {
+        bubbles: true,
+        composed: true,
+        detail: event
+      });
+      event.target?.dispatchEvent(doubleTap);
+      // Clear the timeout to prevent a single tap from firing
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    } else {
+      // Set a new timeout for a single tap
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+      }, doubleTapMs);
+    }
+    lastTap = currentTime;
+  };
+}
+
 export interface StoryMapWord {
   type: string;
   text: string;
@@ -70,9 +112,9 @@ export class StoryContent extends LitElement {
     .story-content {
       overflow-y: auto;
       border-radius: 0.5rem;
-      background-color: white;
       height: 100%;
-      width: 100%;
+      width: 92%;
+      padding: calc(var(--spacing) * 4);
     }
 
     .word {
@@ -112,12 +154,16 @@ export class StoryContent extends LitElement {
 }
   `;
 
+  private _doubleTapHandler: (event: Event) => void;
+
   constructor() {
     super();
     this._markdown = '';
     this._storyMap = [];
     this._questions = [];
     this._processedHtml = '';
+    // Create an instance of our custom double-tap detector
+    this._doubleTapHandler = detectDoubleTap();
   }
 
   get markdown() {
@@ -193,21 +239,22 @@ export class StoryContent extends LitElement {
     // Process story map words in reverse order
     [...this._storyMap].reverse().forEach(({ text, startOffsetUtf32, endOffsetUtf32 }, i) => {
       const matchingQuestion = this._questions.find(({question: q }) => text.toLowerCase().includes(q.correct.toLowerCase()));
-      const classList = `class="word word-${this._storyMap.length - i - 1} ${matchingQuestion ? 'question-word' : ''}"`;
+      const wordIndex = this._storyMap.length - i - 1;
+      const classList = `class="word word-${wordIndex} ${matchingQuestion ? 'question-word' : ''}"`;
       
       if (matchingQuestion && matchingQuestion.question.answers) {
         processedMarkdown = replace_substring(
           processedMarkdown,
           startOffsetUtf32,
           endOffsetUtf32,
-          `<question-element word="${matchingQuestion.question.correct.toLowerCase()}" answers="${matchingQuestion.question.answers}">${text}</question-element>`
+          `<question-element word="${matchingQuestion.question.correct.toLowerCase()}" answers="${matchingQuestion.question.answers}" data-word-index="${this._storyMap.length - i - 1}">${text}</question-element>`
         );
       } else {
         processedMarkdown = replace_substring(
-          processedMarkdown, 
-          startOffsetUtf32, 
-          endOffsetUtf32, 
-          `<span ${classList} data-word-index="${this.storyMap.length - i - 1}">${text}</span>`
+          processedMarkdown,
+          startOffsetUtf32,
+          endOffsetUtf32,
+          `<span ${classList} data-word-index="${this._storyMap.length - i - 1}">${text}</span>`
         );
       }
     });
@@ -219,6 +266,39 @@ export class StoryContent extends LitElement {
     storyHtml = storyHtml.replace(/&lt;/g, '<').replace(/&quot;/g, '"').replace(/&gt;/g, '>');
 
     this.processedHtml = storyHtml;
+    
+    // Add double-tap listeners to word elements after content is processed
+    this._addWordEventListeners();
+  }
+
+  private _addWordEventListeners() {
+    // Wait for the next frame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      const wordElements = this.shadowRoot?.querySelectorAll('.word, question-element');
+      wordElements?.forEach(element => {
+        element.addEventListener('pointerup', this._doubleTapHandler);
+        element.addEventListener('doubletap', this._handleDoubleTap);
+      });
+    });
+  }
+
+  private _removeWordEventListeners() {
+    const wordElements = this.shadowRoot?.querySelectorAll('.word, question-element');
+    wordElements?.forEach(element => {
+      element.removeEventListener('pointerup', this._doubleTapHandler);
+      element.removeEventListener('doubletap', this._handleDoubleTap);
+    });
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    // We'll add listeners to individual word elements after content is processed
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Clean up event listeners from word elements
+    this._removeWordEventListeners();
   }
 
   protected firstUpdated() {
@@ -256,9 +336,31 @@ export class StoryContent extends LitElement {
     }
   };
 
+  private _handleDoubleTap = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const originalEvent = customEvent.detail as PointerEvent;
+    const target = originalEvent.target as HTMLElement;
+    
+    // The target should already be the word element since we attached listeners directly to them
+    const wordElement = target;
+    
+    if (wordElement && wordElement.hasAttribute('data-word-index')) {
+      const wordIndex = parseInt(wordElement.getAttribute('data-word-index') || '0', 10);
+      
+      // Dispatch the story-select-word event with the word index
+      this.dispatchEvent(new CustomEvent('story-select-word', {
+        detail: {
+          wordIndex: wordIndex
+        },
+        bubbles: true,
+        composed: true
+      }));
+    }
+  };
+
   render() {
     return html`
-      <div class="story-content" @scroll=${this.handleScroll} @answer-selected=${this.handleAnswerSelected}>
+      <div class="story-content" @answer-selected=${this.handleAnswerSelected}>
         <div .innerHTML=${this.processedHtml}></div>
       </div>
     `;

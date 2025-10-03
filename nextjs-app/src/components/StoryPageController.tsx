@@ -91,25 +91,33 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   };
 
   const handleScrollStart = () => {
-    audioRef.current?.pause();
+    // audioRef.current?.pause();
   };
 
-  const handleScroll = (position: number) => {
-    console.log('scroll to: ', position)
+  const handleSeek = (position: number, duration?: number) => {
     audioRef.current?.seek(position);
+
+    if (duration && !audioRef.current?.isPlaying()) {
+      audioRef.current?.play();
+
+      setTimeout(() => {
+        audioRef.current?.seek(position);
+        audioRef.current?.pause();
+      }, duration * 1200);
+    }
   };
 
   const handleScrollEnd = () => {
-    audioRef.current?.play();
+    // audioRef.current?.play();
   };
 
   if (!storyAudio) {
     return (
-      <div className="story-page-controller p-4">
+      <div className="story-page-controller p-1">
         <div className="text-center text-gray-500 mb-4">
           No audio available for this story
         </div>
-        <div className="bg-white p-4 rounded-lg shadow page-component-container">
+        <div className="bg-white p-1 rounded-lg page-component-container">
         </div>
         <SummaryComponent ref={summaryRef} />
       </div>
@@ -117,7 +125,7 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
   }
 
   return (
-    <div className="story-page-controller p-4 space-y-4">
+    <div className="story-page-controller p-1 space-y-4">
       {/* Audio Component (hidden) */}
       <AudioComponent
         ref={audioRef}
@@ -126,20 +134,20 @@ const StoryPageControllerInner: React.FC<StoryPageControllerProps> = ({
       />
 
       {/* Story Content */}
-      <div className="bg-white p-4 rounded-lg shadow page-component-container">
+      <div className="bg-white p-1 rounded-lg page-component-container">
         <StoryContentWrapper
           ref={storyContentRef}
           markdown={storyHtml}
           questions={shuffledQuestions}
           storyMap={storyMap}
           onScrollStart={handleScrollStart}
-          onScroll={handleScroll}
+          onSeek={handleSeek}
           onScrollEnd={handleScrollEnd}
         />
       </div>
 
       {/* Speed Control */}
-      <div className="bg-white p-4 rounded-lg shadow speed-component-container">
+      <div className="bg-white p-4 rounded-lg speed-component-container">
         <SpeedComponent
           onToggle={handleToggle}
           onSpeedUpdate={handleSpeedUpdate}

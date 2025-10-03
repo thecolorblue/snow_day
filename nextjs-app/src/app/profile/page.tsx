@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<any>(null);
 
   if (status === "loading") {
     return (
@@ -25,7 +26,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  const handleAddStudent = async (formData: { name: string; friends: string; interests: string }) => {
+  const handleAddStudent = async (formData: { name: string; friends: string; interests: string; lexile: string }) => {
     try {
       const response = await fetch("/api/students", {
         method: "POST",
@@ -69,6 +70,39 @@ export default function ProfilePage() {
     }
   };
 
+  const handleEditStudent = (student: any) => {
+    setEditingStudent(student);
+    setIsAddingStudent(true);
+  };
+
+  const handleUpdateStudent = async (studentId: number, formData: { name: string; friends: string; interests: string; lexile: string }) => {
+    try {
+      const response = await fetch(`/api/students/${studentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setIsAddingStudent(false);
+        setEditingStudent(null);
+        // Refresh the page to show updated data
+        window.location.reload();
+      } else {
+        console.error("Failed to update student");
+      }
+    } catch (error) {
+      console.error("Error updating student:", error);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setIsAddingStudent(false);
+    setEditingStudent(null);
+  };
+
   return (
     <>
     <AppHeader />
@@ -103,13 +137,16 @@ export default function ProfilePage() {
 
               <NewStudentForm
                 isOpen={isAddingStudent}
-                onClose={() => setIsAddingStudent(false)}
+                onClose={handleCloseForm}
                 onSubmit={handleAddStudent}
+                editingStudent={editingStudent}
+                onUpdate={handleUpdateStudent}
               />
 
               <StudentList
                 students={session.guardian?.students}
                 onRemoveStudent={handleRemoveStudent}
+                onEditStudent={handleEditStudent}
               />
             </div>
           </div>

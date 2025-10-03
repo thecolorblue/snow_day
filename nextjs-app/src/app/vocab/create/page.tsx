@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
+import React from 'react';
 
 interface Student {
   id: number;
   name: string;
 }
 
-export default function VocabCreatePage() {
+function VocabCreateForm() {
+  const searchParams = useSearchParams();
+  const base_vocab = searchParams.get('base_vocab');
   const { data: session, status } = useSession();
   const router = useRouter();
   
@@ -22,23 +25,18 @@ export default function VocabCreatePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [baseVocabId, setBaseVocabId] = useState<number | null>(null);
+  const [baseVocabId, setBaseVocabId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetchStudents();
-      
-      // Get base_vocab from URL parameter if exists (client-side only)
-      const urlParams = new URLSearchParams(window.location.search);
-      const baseVocabParam = urlParams.get('base_vocab');
-      
-      if (baseVocabParam) {
-        const vocabId = parseInt(baseVocabParam);
-        setBaseVocabId(vocabId);
-        fetchBaseVocab(vocabId);
+            
+      if (base_vocab) {
+        setBaseVocabId(base_vocab);
+        fetchBaseVocab(base_vocab);
       }
     }
-  }, [status]);
+  }, [status, base_vocab]);
 
   const fetchStudents = async () => {
     try {
@@ -59,7 +57,7 @@ export default function VocabCreatePage() {
     }
   };
 
-  const fetchBaseVocab = async (vocabId: number) => {
+  const fetchBaseVocab = async (vocabId: string) => {
     try {
       const response = await fetch(`/api/vocab/${vocabId}`);
       
@@ -227,5 +225,17 @@ export default function VocabCreatePage() {
         </div>
       </div>
     </div></>
+  );
+}
+
+export default function VocabCreatePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    }>
+      <VocabCreateForm />
+    </Suspense>
   );
 }

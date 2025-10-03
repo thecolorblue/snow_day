@@ -47,13 +47,14 @@ export class QuestionComponent extends LitElement {
 
     .popup {
       position: absolute;
-      left: 0;
-      right: 0;
+      left: inherit;
+      right: -1px;
       padding: 0 8px;
       background: white;
       border-radius: 8px;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
       z-index: 10;
+      width: fit-content;
     }
 
     .popup.bottom {
@@ -85,6 +86,7 @@ export class QuestionComponent extends LitElement {
       border: none;
       background: transparent;
       cursor: pointer;
+      font-size: 1.4rem;
     }
 
     .answer-button:hover {
@@ -109,9 +111,10 @@ export class QuestionComponent extends LitElement {
   }
 
   firstUpdated() {
-    if (this.parentElement) {
+    const parent = this.closest('.story-content')?.children[0];
+    if (parent) {
       const componentRect = this.getBoundingClientRect();
-      const parentRect = this.parentElement.getBoundingClientRect();
+      const parentRect = parent.getBoundingClientRect();
       const oneThirdHeight = parentRect.height / 3;
       const topThirdBoundary = parentRect.top + oneThirdHeight;
       const bottomThirdBoundary = parentRect.top + 2 * oneThirdHeight;
@@ -212,6 +215,9 @@ export class QuestionComponent extends LitElement {
     }
 
     return html`
+      <span class="${classes.join(' ')}" @click=${this.handleWordClick}>
+        <slot></slot>
+      </span>
       ${this.showPopup && ['middle', 'bottom'].includes(this.popupPosition) ? html`
         <div class="popup top">
           <div class="answers">
@@ -226,9 +232,6 @@ export class QuestionComponent extends LitElement {
           </div>
         </div>
       ` : ''}
-      <span class="${classes.join(' ')}" @click=${this.handleWordClick}>
-        <slot></slot>
-      </span>
       ${this.showPopup && ['top', 'middle'].includes(this.popupPosition) ? html`
         <div class="popup bottom">
           <div class="answers">

@@ -60,6 +60,13 @@ The following environment variables are required to run the GCP function. These 
     10. Select **JSON** as the key type and click **Create**.
     11. The JSON key file will be downloaded. The content of this file is the value for `GCP_SA_KEY`.
 - `OPENAI_API_KEY`: Your API key for OpenAI.
+- `GEMINI_API_KEY`: Your API key for Google Gemini. To get this key:
+    1. Go to [Google AI Studio](https://aistudio.google.com/).
+    2. Sign in with your Google account.
+    3. Click on "Get API key" in the left sidebar.
+    4. Click "Create API key" and select a Google Cloud project (or create a new one).
+    5. Copy the generated API key - this is the value for `GEMINI_API_KEY`.
+    6. Note: The Gemini API has usage limits and pricing. Check the [pricing page](https://ai.google.dev/pricing) for current rates.
 - `DATABASE_URL`: The connection string for your PostgreSQL database. This should be in the format `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`.
 
 ### Google Cloud Storage Bucket

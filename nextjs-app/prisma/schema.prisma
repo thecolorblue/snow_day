@@ -48,6 +48,8 @@ model Storyline {
   storyline_id       Int                 @id @default(autoincrement())
   original_request   String?
   status             String              @db.VarChar
+  assigned_to        Int?
+  assigned_student   Student?            @relation(fields: [assigned_to], references: [id], onDelete: SetNull)
   storyline_progress StorylineProgress[]
   storyline_step     StorylineStep[]
 
@@ -122,6 +124,7 @@ model Guardian {
   id        Int       @id @default(autoincrement())
   email     String    @unique
   students  Student[]
+  vocabs    Vocab[]
   createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("guardian")
@@ -132,11 +135,13 @@ model Student {
   name               String
   friends            String
   interests          String
+  lexile             String?
   guardianId         Int?                @map("guardian_id")
   guardian           Guardian?           @relation(fields: [guardianId], references: [id], onDelete: SetNull)
   createdAt          DateTime            @default(now()) @map("created_at")
   student_vocab      StudentVocab[]
   storyline_progress StorylineProgress[]
+  assigned_storylines Storyline[]
 
   @@map("student")
 }
@@ -145,6 +150,8 @@ model Vocab {
   id            Int            @id @default(autoincrement())
   title         String         @db.VarChar(255) // Title/name for the vocabulary list
   list          String         // Comma separated list of words
+  guardianId    Int?           @map("guardian_id")
+  guardian      Guardian?      @relation(fields: [guardianId], references: [id], onDelete: SetNull)
   createdAt     DateTime       @default(now()) @map("created_at")
   student_vocab StudentVocab[]
 
