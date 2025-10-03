@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ interface Student {
   name: string;
 }
 
-export default function VocabCreatePage() {
+function VocabCreateForm() {
   const searchParams = useSearchParams();
   const base_vocab = searchParams.get('base_vocab');
   const { data: session, status } = useSession();
@@ -225,5 +225,17 @@ export default function VocabCreatePage() {
         </div>
       </div>
     </div></>
+  );
+}
+
+export default function VocabCreatePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    }>
+      <VocabCreateForm />
+    </Suspense>
   );
 }
