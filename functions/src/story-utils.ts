@@ -1,4 +1,5 @@
 import { openai } from './openai';
+import { geminiModel } from './gemini';
 import { Storage } from '@google-cloud/storage';
 import { AlignmentResult, align } from 'echogarden';
 import { zodTextFormat } from "openai/helpers/zod";
@@ -96,6 +97,10 @@ export async function validateAndRewriteParagraph(
 
 
 const OAIQuestionResponse = z.object({
+  question: z.string()
+});
+
+const OAIAnswersResponse = z.object({
   answers: z.array(z.string())
 });
 
@@ -159,6 +164,88 @@ export async function generateAndUploadAudio(text: string, storylineId: number, 
     throw new Error('Error generating or uploading audio:' + error);
   }
 }
+
+export async function createComprehensionQuestion(instructions: string, paragraph: string): Promise<Question> {
+  const maxRetries = 3;
+
+  // Generate question
+  const question = await retryApiCall(async () => {
+    const questionPrompt = `${instructions}\n\nText: \n${paragraph}\n\n`;
+    
+    const result = await geminiModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: questionPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+      },
+    });
+
+    const response = result.response;
+    const text = response.text();
+
+    return text;
+
+  }, maxRetries);
+
+  // Generate answers
+  const answers = await retryApiCall(async () => {
+    const answersPrompt = `Generate 3-4 possible answers for this comprehension question based on the given text. The first answer should be the correct one, followed by one answer that is close, and 1-2 answers that are obviously not true. Answers should be seperated by a comma.
+
+Question: ${question}
+Paragraph: ${paragraph}`;
+
+    const result = await geminiModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: answersPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 5000,
+      },
+    });
+
+    const response = result.response;
+    const text = response.text();
+    const answers = text.split(',');
+    
+    if (!answers) {
+      throw new Error(`response formating incorrect ${text}`)
+    }
+
+    if (answers.length > 2) {
+      return answers.slice(0,3).join(',');
+    } else {
+      throw new Error(`not enough answers: ${text}`)
+    }
+  }, maxRetries);
+
+  if (!answers || answers.split(',').length < 2) {
+    throw new Error(`unable to generate comprehension question. ${question}: ${JSON.stringify(answers)}`)
+  }
+
+  return {
+    type: 'comprehension',
+    question,
+    correct: answers.split(',')[0],
+    answers: answers
+  };
+}
+
+async function retryApiCall<T>(apiCall: () => Promise<T>, maxRetries: number): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await apiCall();
+    } catch (error) {
+      lastError = new Error(`Attempt ${attempt} failed: ${error instanceof Error ? error.message : String(error)}`);
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+  }
+
+  throw new Error(`Failed after ${maxRetries} attempts. Last error: ${lastError?.message}`);
+}
   
 export interface Question {
   type: string;
@@ -181,7 +268,7 @@ export async function generateQuestion(word: string): Promise<Question> {
           },
         ],
         text: {
-          format: zodTextFormat(OAIQuestionResponse, "event"),
+          format: zodTextFormat(OAIAnswersResponse, "event"),
         },
       });
 
@@ -189,9 +276,11 @@ export async function generateQuestion(word: string): Promise<Question> {
       
       try {
         // Verify that we got an array of strings
-        if (content && Array.isArray(content.answers) && content.answers.every(item => typeof item === 'string')) {
+        if (content && Array.isArray(content.answers) && content.answers.every((item: any) => typeof item === 'string')) {
           const allAnswers = [word, ...content.answers];
           allAnswers.sort(() => Math.random() - 0.5); // Shuffle the answers
+
+          console.log(`Q: ${word}, answers: ${allAnswers.join(',')}`);
 
           return {
             type: 'select',

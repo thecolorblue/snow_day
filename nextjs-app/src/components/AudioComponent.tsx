@@ -109,8 +109,7 @@ const AudioComponent = forwardRef<AudioComponentRef, AudioComponentProps>(
           <source src={url} type="audio/mpeg" />
           Your browser does not support the audio element.
         </audio>
-        <button
-          onClick={togglePlayPause}
+        <button onClick={togglePlayPause}
           style={{
             background: '#333',
             border: 'none',
@@ -124,7 +123,7 @@ const AudioComponent = forwardRef<AudioComponentRef, AudioComponentProps>(
             marginTop: '10px',
             transition: 'background-color 0.2s ease',
             position: 'absolute',
-            top: '92px',
+            top: '66px',
             zIndex: 10
           }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#555'}

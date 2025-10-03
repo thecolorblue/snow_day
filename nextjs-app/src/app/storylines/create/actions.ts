@@ -65,6 +65,42 @@ async function selectWordsFromVocab(vocabId: number): Promise<string[]> {
   }
 }
 
+// Helper function to wait for stories to be generated and connected to the storyline
+async function waitForStoriesGeneration(storylineId: number, maxWaitTime: number = 60000, checkInterval: number = 2000): Promise<void> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < maxWaitTime) {
+    try {
+      // Check how many stories are connected to this storyline
+      const storyCount = await prisma.storylineStep.count({
+        where: {
+          storyline_id: storylineId
+        }
+      });
+      
+      console.log(`Storyline ${storylineId} currently has ${storyCount} stories connected`);
+      
+      // If we have at least 2 stories, we can proceed
+      if (storyCount >= 2) {
+        console.log(`Storyline ${storylineId} has reached the minimum of 2 stories. Proceeding to next step.`);
+        return;
+      }
+      
+      // Wait before checking again
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      
+    } catch (error) {
+      console.error(`Error checking story count for storyline ${storylineId}:`, error);
+      // Continue waiting even if there's an error checking
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    }
+  }
+  
+  // If we've waited the maximum time, log a warning but don't throw an error
+  // This allows the storyline creation to complete even if story generation is slow
+  console.warn(`Timeout waiting for stories to be generated for storyline ${storylineId}. Proceeding anyway.`);
+}
+
 export async function createStorylineAction(formData: FormData) {
   // 1. Extract data from FormData
   const selectedVocabId = formData.get('selected_vocab') as string;
@@ -96,21 +132,21 @@ export async function createStorylineAction(formData: FormData) {
   }
 
   // 2. Select words from the chosen vocab based on storyline progress
-  let selectedWords: string[] = [];
-  try {
-    selectedWords = await selectWordsFromVocab(vocabId);
-    console.log(`Selected ${selectedWords.length} words from vocab ${vocabId}: ${selectedWords.join(', ')}`);
-  } catch (error) {
-    console.error("Error selecting words from vocab:", error);
-    throw new Error("Failed to select words from vocabulary.");
-  }
+  // let selectedWords: string[] = [];
+  // try {
+  //   selectedWords = await selectWordsFromVocab(vocabId);
+  //   console.log(`Selected ${selectedWords.length} words from vocab ${vocabId}: ${selectedWords.join(', ')}`);
+  // } catch (error) {
+  //   console.error("Error selecting words from vocab:", error);
+  //   throw new Error("Failed to select words from vocabulary.");
+  // }
 
   // 3. Construct the storyline_data JSON object
   // Use selected values or random defaults if not selected
   const storylineData = {
     student_id: studentId,
     vocab_id: vocabId,
-    words: selectedWords, // Array of words from the vocab
+    words: [],
     genre: genre ?? GENRES[getRandomInt(0, GENRES.length - 1)],
     location: location ?? LOCATIONS[getRandomInt(0, LOCATIONS.length - 1)],
     style: style ?? STYLES[getRandomInt(0, STYLES.length - 1)],
@@ -118,15 +154,17 @@ export async function createStorylineAction(formData: FormData) {
     friend: friends.length > 0 ? friends[getRandomInt(0, friends.length - 1)] : FRIENDS[getRandomInt(0, FRIENDS.length - 1)],
   };
 
+  const storyline = await prisma.storyline.create({
+    data: {
+      assigned_to: studentId,
+      original_request: JSON.stringify(storylineData), // Store the constructed data as JSON
+      status: 'pending', // Set initial status
+      // storyline_id is auto-generated
+    },
+  });
+
   // 4. Create Storyline record in the database
   try {
-    const storyline = await prisma.storyline.create({
-      data: {
-        original_request: JSON.stringify(storylineData), // Store the constructed data as JSON
-        status: 'pending', // Set initial status
-        // storyline_id is auto-generated
-      },
-    });
 
     // Make HTTP POST request to Google Cloud Function using google-cloud/functions package
     const postData = `storyline_id=${storyline.storyline_id}`;
@@ -141,13 +179,14 @@ export async function createStorylineAction(formData: FormData) {
         },
         body: postData
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const result = await response.text();
-      console.log(`Successfully sent request to generate story. Response: ${result}`);
+      // Wait for stories to be generated and connected to the storyline
+      await waitForStoriesGeneration(storyline.storyline_id);
+      
     } catch (error) {
       console.error('Error sending request to generate story:', error);
       throw new Error('Failed to send request to generate story');
@@ -161,5 +200,5 @@ export async function createStorylineAction(formData: FormData) {
   }
 
   // 5. Redirect to the storylines dashboard on success
-  redirect('/storylines');
+  redirect(`/storyline/${storyline.storyline_id}/mobile/1`);
 }

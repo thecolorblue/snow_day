@@ -88,15 +88,6 @@ const SDApplicationBar = ({ app_name, primary_menu }: SDApplicationBarProps) => 
           {/* Menu dropdown */}
           {isMenuOpen && (
             <div className="absolute top-16 left-4 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-auto">
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => {
-                  console.log('Open document clicked');
-                  setIsMenuOpen(false);
-                }}
-              >
-                Open document
-              </button>
               
               {/* Primary menu items */}
               {primary_menu && primary_menu.map(({ title, callback, icon, href }) => {

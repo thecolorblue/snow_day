@@ -1,7 +1,7 @@
 "use client";
 
 import { AppHeader } from "@/components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface FormData {
   name: string;
@@ -10,13 +10,23 @@ interface FormData {
   lexile: string;
 }
 
+interface Student {
+  id: number;
+  name: string;
+  friends: string;
+  interests: string;
+  lexile: string | null;
+}
+
 interface NewStudentFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: FormData) => Promise<void>;
+  editingStudent?: Student | null;
+  onUpdate?: (studentId: number, formData: FormData) => Promise<void>;
 }
 
-export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudentFormProps) {
+export default function NewStudentForm({ isOpen, onClose, onSubmit, editingStudent, onUpdate }: NewStudentFormProps) {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     friends: "",
@@ -24,9 +34,32 @@ export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudent
     lexile: "",
   });
 
+  // Update form data when editing student changes
+  useEffect(() => {
+    if (editingStudent) {
+      setFormData({
+        name: editingStudent.name,
+        friends: editingStudent.friends,
+        interests: editingStudent.interests,
+        lexile: editingStudent.lexile || "",
+      });
+    } else {
+      setFormData({
+        name: "",
+        friends: "",
+        interests: "",
+        lexile: "",
+      });
+    }
+  }, [editingStudent]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(formData);
+    if (editingStudent && onUpdate) {
+      await onUpdate(editingStudent.id, formData);
+    } else {
+      await onSubmit(formData);
+    }
     // Reset form after successful submission
     setFormData({ name: "", friends: "", interests: "", lexile: "" });
   };
@@ -240,11 +273,11 @@ export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudent
   if (!isOpen) return null;
 
   return (
-    <>
-    <AppHeader></AppHeader>
-    <div className="inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Student</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {editingStudent ? 'Edit Student' : 'Add Student'}
+        </h3>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -321,11 +354,11 @@ export default function NewStudentForm({ isOpen, onClose, onSubmit }: NewStudent
               type="submit"
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
             >
-              Add Student
+              {editingStudent ? 'Update Student' : 'Add Student'}
             </button>
           </div>
         </form>
       </div>
-    </div></>
+    </div>
   );
 }

@@ -116,7 +116,7 @@ export default function StorylineForm({
       setSelectedStudent(student.id.toString());
       // Set the lexile value in the style textarea
       if (student.lexile) {
-        setSelectedStyle(student.lexile);
+        setSelectedStyle(`lexile level ${student.lexile}`);
       }
     }
   }, [students, selectedStudent]);
@@ -259,11 +259,19 @@ export default function StorylineForm({
             style={{ minHeight: '100px' }}
           >
              {/* No default "--Select..." needed for multi-select usually */}
-            {staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)}
+            {selectedStudent ?
+              students.find(s => s.id.toString() === selectedStudent)?.interests?.split(',').map((interest: string) => <option key={interest} value={interest}>{interest}</option>) ||
+              staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)
+              : staticInterests.map(interest => <option key={interest} value={interest}>{interest}</option>)
+            }
           </select>
           <button
             type="button"
-            onClick={() => setSelectedInterests(randomSelectMultiple(interestOptions))}
+            onClick={() => setSelectedInterests(randomSelectMultiple(
+              selectedStudent ?
+                (students.find(s => s.id.toString() === selectedStudent)?.interests?.split(',') || staticInterests).map(i => ({ value: i, text: i }))
+                : interestOptions
+            ))}
             className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
           >
             Random
@@ -284,11 +292,19 @@ export default function StorylineForm({
             className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             style={{ minHeight: '80px' }}
           >
-            {staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)}
+            {selectedStudent ?
+              students.find(s => s.id.toString() === selectedStudent)?.friends?.split(',').map((friend: string) => <option key={friend} value={friend}>{friend}</option>) ||
+              staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)
+              : staticFriends.map(friend => <option key={friend} value={friend}>{friend}</option>)
+            }
           </select>
           <button
             type="button"
-            onClick={() => setSelectedFriends(randomSelectMultiple(friendOptions))}
+            onClick={() => setSelectedFriends(randomSelectMultiple(
+              selectedStudent ?
+                (students.find(s => s.id.toString() === selectedStudent)?.friends?.split(',') || staticFriends).map(i => ({ value: i, text: i }))
+                : friendOptions
+            ))}
             className="px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
           >
             Random

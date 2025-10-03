@@ -38,6 +38,7 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
   }
 
   const storyMap = stepDetails.story.map ? JSON.parse(stepDetails.story.map): [];
+  console.log(`step questions:`, JSON.stringify(stepDetails.story.story_question, null, 4));
   const questions = stepDetails.story.story_question.map((sq) => sq.question);
 
   // Ensure the fetched step belongs to the correct storyline
@@ -48,19 +49,19 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
 
   return (
     <QuestionsProvider>
-      <div className="story-page min-h-screen bg-gray-50">
+      <div className="story-page min-h-screen bg-white">
       {/* Mobile Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <BackButton />
               <div>
                 <h1 className="text-lg font-semibold">Story {storylineStep}</h1>
-                <p className="text-sm text-gray-500">Storyline {storylineId}</p>
+                <p className="text-sm text-white">Storyline {storylineId}</p>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-white">
               {storylineDetails && Object.keys(storylineDetails.progress).length > 0 && (
                 <span>
                   {Object.values(storylineDetails.progress).filter(Boolean).length} / {Object.keys(storylineDetails.progress).length}
@@ -73,7 +74,7 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
 
       {/* Progress Bar */}
       {storylineDetails && (
-        <div className="bg-white border-b">
+        <div className="bg-white">
           <div className="px-4 py-2">
             <div className="flex space-x-1">
               {Object.keys(storylineDetails.progress).map((stepNum) => {

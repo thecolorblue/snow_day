@@ -1,3 +1,4 @@
+import { platform } from 'os';
 import prisma from './prisma';
 
 export interface StudentStats {
@@ -16,14 +17,32 @@ export interface VocabStats {
 export interface StorylineStats {
   storyline_id: number;
   student_name: string;
+  student_id: number;
   pages: number;
   original_request: string | null;
+}
+
+export interface DemoStoryline {
+  storyline_id: number;
+  title: string;
+  pages: number;
+}
+
+export interface VocabProgress {
+  vocab_id: number;
+  vocab_title: string;
+  total_words: number;
+  learned_words: number;
+  progress_percentage: number;
 }
 
 export interface FrontPageData {
   students: StudentStats[];
   vocabs: VocabStats[];
   storylines: StorylineStats[];
+  demoStorylines: DemoStoryline[];
+  hasStorylineProgress: boolean;
+  vocabProgress: VocabProgress[];
 }
 
 // Student.completedStorylines (student_id, duration) => return number of storylines attached to that student
@@ -121,7 +140,14 @@ export async function getFrontPageData(guardianEmail: string): Promise<FrontPage
   });
 
   if (!guardian) {
-    return { students: [], vocabs: [], storylines: [] };
+    return {
+      students: [],
+      vocabs: [],
+      storylines: [],
+      demoStorylines: [],
+      hasStorylineProgress: false,
+      vocabProgress: []
+    };
   }
 
   // Get student stats (completed storylines and correct answers in the past week)
@@ -179,26 +205,100 @@ export async function getFrontPageData(guardianEmail: string): Promise<FrontPage
     const storylines = await prisma.$queryRaw<Array<{
       storyline_id: number;
       student_name: string;
+      student_id: number;
       pages: number;
       original_request: string | null;
     }>>`
       SELECT DISTINCT
         sl.storyline_id,
         s.name as student_name,
+        s.id as student_id,
         (SELECT COUNT(*) FROM storyline_step ss WHERE ss.storyline_id = sl.storyline_id) as pages,
         sl.original_request
       FROM storyline sl
-      JOIN storyline_progress sp ON sl.storyline_id = sp.storyline_id
-      JOIN student s ON sp.student_id = s.id
-      WHERE sp.student_id = ANY(${studentIds})
+      JOIN student s ON sl.assigned_to = s.id
+      WHERE sl.assigned_to = ANY(${studentIds}) and sl.status != 'finished'
     `;
 
     storylineStats.push(...storylines);
+  }
+
+  // Get demo storylines (storylines with id 1 and 2)
+  const demoStorylines: DemoStoryline[] = [];
+  try {
+    const demos = await prisma.$queryRaw<Array<{
+      storyline_id: number;
+      title: string;
+      pages: number;
+    }>>`
+      SELECT
+        sl.storyline_id,
+        COALESCE(sl.original_request, 'Demo Storyline') as title,
+        (SELECT COUNT(*) FROM storyline_step ss WHERE ss.storyline_id = sl.storyline_id) as pages
+      FROM storyline sl
+      WHERE sl.storyline_id IN (52)
+    `;
+    demoStorylines.push(...demos);
+  } catch (error) {
+    console.error('Error fetching demo storylines:', error);
+  }
+
+  // Check if any student has storyline progress
+  const hasStorylineProgress = guardian.students.length > 0 && storylineStats.length > 0;
+
+  // Get vocab progress for students
+  const vocabProgress: VocabProgress[] = [];
+  if (guardian.students.length > 0) {
+    const studentIds = guardian.students.map(s => s.id);
+    
+    try {
+      const progress = await prisma.$queryRaw<Array<{
+        vocab_id: number;
+        vocab_title: string;
+        total_words: number;
+        learned_words: number;
+      }>>`
+        SELECT
+          v.id as vocab_id,
+          v.title as vocab_title,
+          CASE
+            WHEN v.list IS NULL OR v.list = '' THEN 0
+            ELSE ARRAY_LENGTH(STRING_TO_ARRAY(v.list, ','), 1)
+          END as total_words,
+          COUNT(DISTINCT q.correct) as learned_words
+        FROM vocab v
+        JOIN student_vocab sv ON v.id = sv.vocab_id
+        LEFT JOIN storyline_progress sp ON sv.student_id = sp.student_id
+          AND sp.score > 0
+        LEFT JOIN story_question sq ON sp.story_question_id = sq.id
+        LEFT JOIN question q ON sq.question_id = q.id
+          AND q.correct = ANY(STRING_TO_ARRAY(v.list, ','))
+        WHERE sv.student_id = ANY(${studentIds})
+        GROUP BY v.id, v.list
+      `;
+
+      for (const p of progress) {
+        const totalWords = Number(p.total_words);
+        const learnedWords = Number(p.learned_words);
+        vocabProgress.push({
+          vocab_id: p.vocab_id,
+          vocab_title: p.vocab_title,
+          total_words: totalWords,
+          learned_words: learnedWords,
+          progress_percentage: totalWords > 0 ? Math.round((learnedWords / totalWords) * 100) : 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching vocab progress:', error);
+    }
   }
 
   return {
     students: studentStats,
     vocabs: vocabStats,
     storylines: storylineStats,
+    demoStorylines,
+    hasStorylineProgress,
+    vocabProgress,
   };
 }

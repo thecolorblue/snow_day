@@ -34,7 +34,7 @@ export const generateStory: HttpFunction = async (req: Request, res: Response) =
             res.write(`Chapter ${index} completed`);
           }
         })
-        .then(() => res.send({ success: true, storylineId: storyline_id }));
+        .then(() => res.end(JSON.stringify({ success: true, storylineId: storyline_id })));
 
   } catch (error: any) {
     console.error(error);

@@ -3,7 +3,7 @@
 import { useQuestions } from '@/components/QuestionsContext';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { completeChapter, StorylineProgress } from '../app/storyline/[storyline_id]/page/[storyline_step]/actions';
+import { completeChapter, getCompletedStorylines, StorylineProgress } from '../app/storyline/[storyline_id]/page/[storyline_step]/actions';
 import { StorylineDetails, StorylineStepDetails } from '@/lib/storyline-utils';
 
 interface StorylineNavigationButtonsProps {
@@ -76,7 +76,7 @@ export default function StorylineNavigationButtons({
   }, [getQuestions]);
 
   return (
-    <div className="bg-white border-t px-4 py-3">
+    <div className="bg-white px-4 py-3">
       <div className="flex justify-between items-center">
         <div>
           {stepDetails.step > 1 && (
@@ -118,7 +118,10 @@ export default function StorylineNavigationButtons({
           {storylineDetails && stepDetails.step === Object.keys(storylineDetails.progress).length && (
             <Link
               href={`/storylines`}
-              onNavigate={() => completeChapter(Object.values(progress))}
+              onNavigate={() => {
+                completeChapter(Object.values(progress));
+                getCompletedStorylines(storylineId);
+              }}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
                 isCompleted
                   ? 'bg-blue-600 text-white hover:bg-blue-700 transition-colors'

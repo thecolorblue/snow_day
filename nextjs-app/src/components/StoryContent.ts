@@ -112,9 +112,9 @@ export class StoryContent extends LitElement {
     .story-content {
       overflow-y: auto;
       border-radius: 0.5rem;
-      background-color: white;
       height: 100%;
-      width: 100%;
+      width: 92%;
+      padding: calc(var(--spacing) * 4);
     }
 
     .word {

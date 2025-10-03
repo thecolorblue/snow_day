@@ -6,7 +6,9 @@ if [ ! -f .env ]; then
   echo "Error: .env file not found."
   exit 1
 fi
-VARS="$(grep BLOB_READ_WRITE_TOKEN .env)"
+VARS="$(grep -E 'BLOB_READ_WRITE_TOKEN|GEMINI_API_KEY' .env | tr '\n' ',')"
+# Remove trailing comma if present
+VARS="${VARS%,}"
 
 # Get the project ID from gcloud config
 PROJECT_ID=$(gcloud config get-value project)

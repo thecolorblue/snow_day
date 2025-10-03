@@ -48,6 +48,8 @@ model Storyline {
   storyline_id       Int                 @id @default(autoincrement())
   original_request   String?
   status             String              @db.VarChar
+  assigned_to        Int?
+  assigned_student   Student?            @relation(fields: [assigned_to], references: [id], onDelete: SetNull)
   storyline_progress StorylineProgress[]
   storyline_step     StorylineStep[]
 
@@ -138,6 +140,7 @@ model Student {
   createdAt          DateTime            @default(now()) @map("created_at")
   student_vocab      StudentVocab[]
   storyline_progress StorylineProgress[]
+  assigned_storylines Storyline[]
 
   @@map("student")
 }

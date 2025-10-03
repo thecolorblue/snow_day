@@ -1,7 +1,7 @@
 
 import prisma from './prisma';
 import { openai } from './openai';
-import { validateAndRewriteParagraph, generateAndUploadAudio, generateQuestion, Question, FASegment, FAWord } from './story-utils';
+import { validateAndRewriteParagraph, generateAndUploadAudio, generateQuestion, Question, FASegment, FAWord, createComprehensionQuestion } from './story-utils';
 import { Storyline } from '@prisma/client';
 
 export interface ParsedStoryline extends Storyline {
@@ -13,11 +13,37 @@ export interface ParsedStoryline extends Storyline {
   friend: string[];
   vocab_id: number;
   student_id: number;
+  framework?: string;
 }
 
 const chapterMap = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'];
+
+export const frameworks:{ [name: string]: string[] } = {
+  'story_circle': [
+    "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting through the characters actions.",
+    "Show what's missing in their life. This should set the stakes for the rest of the story. They desire something or are faced with a challenge that disrupts their normalcy. A magical creature or item is revealed but it is not clear to what use.",
+    "The protagonist is forced to make a choice to leave their comfort zone, embarking on their journey. ",
+    "They find obstacles in this new world. They fail their first challenge and must un-learn something foundational to their ordinary world to continue on their journey.",
+    "They achieve what they sought and receive an item of great value (at least to them) and new knowledge that brings clarity to their ordinary world, but it comes with unexpected consequences.",
+    "A major cost or sacrifice is required. The protagonist pays a price, forcing growth or change to move forward in their journey.",
+    "They head back to their familiar world, with both tangible and intangible items. The journey has revealed a fundamental truth about their world that was not clear before. This new perspective makes the solution to previous problems trivial and they receive great praise for the value they can add to their community.",
+    "The protagonist integrates what they've learned, resolving the journey with newfound wisdom or transformation.",
+  ],
+  'heros_journey': [
+    'Introduce the hero in their ordinary world. Show what their daily life looks like, what they care about, and what might be missing. Then, describe the moment when they receive the call to adventure — an invitation, challenge, or disruption that asks them to leave their comfort zone.',
+    'Describe how the hero hesitates or refuses the call at first, then meets a mentor, guide, or helper who gives them courage or tools. Show the moment when the hero finally crosses into the unknown world, leaving their ordinary life behind.',
+    'Create scenes where the hero faces tests, makes friends, and encounters enemies in the unfamiliar world. Show how each challenge teaches them something new and begins to transform them.',
+    "Write the hero's greatest challenge yet — a life-or-death ordeal, major confrontation, or deep personal struggle. Show how they face their fear, what they learn, and the reward they earn (knowledge, treasure, reconciliation, or self-discovery).",
+    "Describe the hero's journey back to the ordinary world. Show how they are changed by what they experienced and how they bring something valuable — wisdom, strength, or a gift — that transforms their community or world.",
+  ],
+  'three_acts': [
+    "Introduce the main characters, the setting, and the world of the play. Establish their ordinary lives and relationships. Present the central conflict or problem that disrupts the status quo and forces the characters into action.",
+    "Write scenes where the conflict escalates. Show the characters facing obstacles, setbacks, and rising stakes. Include moments of tension, transformation, or betrayal that push the story toward a crisis.",
+    "Write the climax of the story, where the central conflict comes to a head. Resolve the main tension through decisive action. Then, show the aftermath: how the characters and their world are changed by the events of the play."
+  ]
+};
 export const storyCircleChapters = [
-  "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting.",
+  "Introduce the protagonist in their ordinary world. Establish their life, personality, and setting through the characters actions.",
   "Show what's missing in their life. This should set the stakes for the rest of the story. They desire something or are faced with a challenge that disrupts their normalcy. A magical creature or item is revealed but it is not clear to what use.",
   "The protagonist is forced to make a choice to leave their comfort zone, embarking on their journey. ",
   "They find obstacles in this new world. They fail their first challenge and must un-learn something foundational to their ordinary world to continue on their journey.",
@@ -28,9 +54,12 @@ export const storyCircleChapters = [
 ];
 const instructions = `
 You are an expert fiction writer for elementary students. You will write one chapter at a time. Each chapter should be about 150 words. 
-Write stories in eight chapters, each corresponding to a step in the Dan Harmon Story Circle.
-
+Do not repeat details from the story that have already been stated. Prefer showing details through the characters actions rather than telling the reader. 
 Your output is always in markdown format.`;
+const comprehensionInstructions = `
+Write a comprehension question for the given text. Keep the question short and at the same reading level as the text. 
+`;
+
 
 export interface ProcessedParagraph {
   content: string;
@@ -106,18 +135,20 @@ export class StoryGenerator {
   }
 
   async chapterGenerator(storylineData: ParsedStoryline, previousChapter: string|undefined = undefined, index: number = 0): Promise<string | null> {
-    if (!storyCircleChapters[index]) {
+    const chapters = frameworks[storylineData.framework || 'three_acts'];
+    if (!chapters[index]) {
       return Promise.resolve(null);
     }
     const { genre, location, style, selected_interests, vocab_id, student_id } = storylineData;
     const interests_string = selected_interests?.join(', ') || 'nothing in particular';
-    const words = await this.pickNextWords(vocab_id, student_id);
+    storylineData.words = await this.pickNextWords(vocab_id, student_id);
+
     const user_prompt = `
-Write the ${chapterMap[index]} chapter that should ${storyCircleChapters[index]}
+Write the ${chapterMap[index]} chapter that should ${chapters[index]}
 
 Story Description:
-Write an ${genre} story located in ${location} in the style of ${style}. It should be very silly. Over the top silly.
-The story must include the following words: ${words.join(', ')}.
+Write an ${genre} story located in ${location} in the style of ${style} about ${interests_string}. It should be very silly. Over the top silly.
+The story must include the following words: ${storylineData.words.join(', ')}.
 
 Previous Chapter:
 ${previousChapter}
@@ -137,8 +168,7 @@ ${previousChapter}
       throw new Error('LLM response was empty.');
     }
 
-    return content
-
+    return content;
   }
 
   async processParagraph(paragraph: string, storylineData: ParsedStoryline, index: number = 0): Promise<ProcessedParagraph> {
@@ -148,21 +178,27 @@ ${previousChapter}
       throw new Error('Failed to validate and rewrite paragraph.');
     }
 
-    const { audio, map } = await generateAndUploadAudio(validatedParagraph, storylineData.storyline_id, index);
-
     const wordsInParagraph = storylineData.words.filter((word: string) => validatedParagraph.toLowerCase().includes(word.toLowerCase()));
     const qPromises = [];
     for (const word of wordsInParagraph) {
       qPromises.push(generateQuestion(word));
     }
 
-    const questions = await Promise.all(qPromises);
+    const [
+      comprehensionQuestion,
+      { audio, map },
+      ...questions
+    ] = await Promise.all([
+      createComprehensionQuestion(comprehensionInstructions, validatedParagraph),
+      generateAndUploadAudio(validatedParagraph, storylineData.storyline_id, index),
+      ...qPromises
+    ]);
 
     return {
       content: validatedParagraph,
       audio,
       map,
-      questions
+      questions: [ ...questions, comprehensionQuestion]
     };
   }
 
@@ -191,8 +227,7 @@ ${previousChapter}
       return [];
     }
 
-    const uniqueWords = [...new Set(vocab.list.split(',').map(w => w.trim()))];
-
+    const uniqueWords = [...new Set(vocab.list.split(',').map(w => w.toLocaleLowerCase().trim()))];
     const progressMap = new Map<string, { attempts: number; duration: number }>();
 
     for (const p of progress) {

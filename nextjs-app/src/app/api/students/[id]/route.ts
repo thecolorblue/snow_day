@@ -58,3 +58,77 @@ export async function DELETE(
     );
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const resolvedParams = await params;
+    const studentId = parseInt(resolvedParams.id);
+    
+    if (isNaN(studentId)) {
+      return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const { name, friends, interests, lexile } = body;
+
+    // Validate required fields
+    if (!name || !friends || !interests || !lexile) {
+      return NextResponse.json(
+        { error: 'Name, friends, interests, and lexile are required' },
+        { status: 400 }
+      );
+    }
+
+    // Find the guardian
+    const guardian = await prisma.guardian.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!guardian) {
+      return NextResponse.json({ error: 'Guardian not found' }, { status: 404 });
+    }
+
+    // Check if the student belongs to this guardian
+    const existingStudent = await prisma.student.findFirst({
+      where: {
+        id: studentId,
+        guardianId: guardian.id,
+      },
+    });
+
+    if (!existingStudent) {
+      return NextResponse.json(
+        { error: 'Student not found or does not belong to this guardian' },
+        { status: 404 }
+      );
+    }
+
+    // Update the student
+    const updatedStudent = await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        name,
+        friends,
+        interests,
+        lexile,
+      },
+    });
+
+    return NextResponse.json(updatedStudent);
+  } catch (error) {
+    console.error('Error updating student:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

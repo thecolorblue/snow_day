@@ -7,14 +7,16 @@ interface Student {
   name: string;
   friends: string;
   interests: string;
+  lexile: string | null;
 }
 
 interface StudentListProps {
   students?: Student[];
   onRemoveStudent: (studentId: number) => void;
+  onEditStudent: (student: Student) => void;
 }
 
-export default function StudentList({ students, onRemoveStudent }: StudentListProps) {
+export default function StudentList({ students, onRemoveStudent, onEditStudent }: StudentListProps) {
   return (
     <>
       <AppHeader></AppHeader>
@@ -25,12 +27,20 @@ export default function StudentList({ students, onRemoveStudent }: StudentListPr
             <div key={student.id} className="bg-gray-50 p-4 rounded-md border">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-gray-900">{student.name}</h3>
-                <button
-                  onClick={() => onRemoveStudent(student.id)}
-                  className="text-red-500 hover:text-red-700 text-sm"
-                >
-                  Remove
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => onEditStudent(student)}
+                    className="text-blue-500 hover:text-blue-700 text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onRemoveStudent(student.id)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
               <div className="space-y-2 text-sm">
                 <div>
@@ -40,6 +50,10 @@ export default function StudentList({ students, onRemoveStudent }: StudentListPr
                 <div>
                   <span className="font-medium text-gray-600">Interests:</span>
                   <p className="text-gray-900">{student.interests}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Lexile Level:</span>
+                  <p className="text-gray-900">{student.lexile || 'Not set'}</p>
                 </div>
               </div>
             </div>
