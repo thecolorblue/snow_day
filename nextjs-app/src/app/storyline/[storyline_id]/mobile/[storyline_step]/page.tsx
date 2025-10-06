@@ -6,6 +6,7 @@ import { getStorylineStepDetails, getStorylineDetails } from '@/lib/storyline-ut
 import { QuestionsProvider } from '@/components/QuestionsContext';
 import StoryContentWrapper from '@/components/StoryContentWrapper';
 import StorylineNavigationButtons from '@/components/StorylineNavigationButtons';
+import OpenReplayWrapper from '@/lib/OpenReplayWrapper';
 
 // Define the props for the mobile page component
 interface MobilePageProps {
@@ -48,6 +49,9 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
   }
 
   return (
+    <OpenReplayWrapper
+      storylineId={storylineId}
+      storylineStep={storylineStep}>
     <QuestionsProvider>
       <div className="story-page min-h-screen bg-white">
       {/* Mobile Header */}
@@ -118,6 +122,6 @@ export default async function MobileStorylineStepPage({ params }: MobilePageProp
         storylineDetails={storylineDetails}
       />}
       </div>
-    </QuestionsProvider>
+    </QuestionsProvider></OpenReplayWrapper>
   );
 }
