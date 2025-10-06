@@ -38,7 +38,7 @@ export default function OpenReplayWrapper({
         stopOpenReplaySession();
       };
     }
-  }, [storylineId, storylineStep, studentId, session?.user?.email]);
+  }, [storylineId, storylineStep, studentId, session?.user?.email, session?.guardian?.id]);
 
   return <>{children}</>;
 }

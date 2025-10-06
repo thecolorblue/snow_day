@@ -25,6 +25,7 @@ export function startOpenReplaySession(metadata: {
   userId?: string;
   studentId?: number;
   storylineId?: number;
+  guardianId?: number;
   pageId?: number;
 }) {
   const tracker = initOpenReplay();
@@ -50,6 +51,10 @@ export function startOpenReplaySession(metadata: {
     
     if (metadata.storylineId) {
       tracker.setMetadata('storyline_id', metadata.storylineId.toString());
+    }
+
+    if (metadata.guardianId) {
+      tracker.setMetadata('guardian_id', metadata.guardianId.toString());
     }
     
     if (metadata.pageId) {
