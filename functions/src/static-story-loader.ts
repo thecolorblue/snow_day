@@ -97,9 +97,6 @@ async function loadStoryFromYaml(filePath: string) {
 
 // This allows the script to be run from the command line.
 // Usage: ts-node functions/src/static-story-loader.ts <path_to_yaml_file>
-
-console.log(process.argv);
-
 const filePath = process.argv[2];
 if (!filePath) {
   console.error('Please provide the path to a YAML story file.');
