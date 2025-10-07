@@ -236,7 +236,7 @@ export async function getFrontPageData(guardianEmail: string): Promise<FrontPage
         COALESCE(sl.original_request, 'Demo Storyline') as title,
         (SELECT COUNT(*) FROM storyline_step ss WHERE ss.storyline_id = sl.storyline_id) as pages
       FROM storyline sl
-      WHERE sl.storyline_id IN (52)
+      WHERE sl.storyline_id IN (61)
     `;
     demoStorylines.push(...demos);
   } catch (error) {

@@ -171,7 +171,7 @@ ${previousChapter}
     return content;
   }
 
-  async processParagraph(paragraph: string, storylineData: ParsedStoryline, index: number = 0): Promise<ProcessedParagraph> {
+  async processParagraph(paragraph: string, storylineData: ParsedStoryline, index: number = 0, comprehension: boolean = true): Promise<ProcessedParagraph> {
     const validatedParagraph = await validateAndRewriteParagraph(paragraph, storylineData.words);
 
     if (!validatedParagraph) {
@@ -184,12 +184,14 @@ ${previousChapter}
       qPromises.push(generateQuestion(word));
     }
 
+    if (comprehension) {
+      qPromises.push(createComprehensionQuestion(comprehensionInstructions, validatedParagraph));
+    }
+
     const [
-      comprehensionQuestion,
       { audio, map },
       ...questions
     ] = await Promise.all([
-      createComprehensionQuestion(comprehensionInstructions, validatedParagraph),
       generateAndUploadAudio(validatedParagraph, storylineData.storyline_id, index),
       ...qPromises
     ]);
@@ -198,7 +200,7 @@ ${previousChapter}
       content: validatedParagraph,
       audio,
       map,
-      questions: [ ...questions, comprehensionQuestion]
+      questions
     };
   }
 
