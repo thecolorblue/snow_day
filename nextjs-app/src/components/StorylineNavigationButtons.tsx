@@ -36,7 +36,7 @@ export default function StorylineNavigationButtons({
 
   const allQuestionsCompleted = () => {
     const questions = getQuestions();
-    return questions.length > 0 && questions.every(q => q.status === 'correct');
+    return questions.length === 0 || questions.every(q => q.status === 'correct');
   };
 
   const checkCompletion = () => {
@@ -117,7 +117,7 @@ export default function StorylineNavigationButtons({
           )}
           {storylineDetails && stepDetails.step === Object.keys(storylineDetails.progress).length && (
             <Link
-              href={`/storylines`}
+              href={`/`}
               onNavigate={() => {
                 completeChapter(Object.values(progress));
                 getCompletedStorylines(storylineId);
